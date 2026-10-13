@@ -5,13 +5,11 @@
  * En demo/dev: guarda en localStorage como base64
  */
 
+import { supabase, isSupabaseConfigured } from './supabase';
+
 const STORAGE_PREFIX = 'energicuba_img_';
 const MAX_LOCAL_STORAGE_IMAGES = 20;
-
-// Verificar si Supabase está configurado
-const isSupabaseConfigured = () => {
-  return !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
-};
+const BUCKET_NAME = 'products';
 
 // Generar nombre de archivo único
 const generateFileName = (originalName: string): string => {
@@ -21,7 +19,7 @@ const generateFileName = (originalName: string): string => {
   return `${timestamp}-${random}.${ext}`;
 };
 
-// Comprimir imagen antes de guardar (reduce tamaño para localStorage)
+// Comprimir imagen antes de guardar (reduce tamaño)
 const compressImage = (dataUrl: string, maxWidth = 800, quality = 0.8): Promise<string> => {
   return new Promise((resolve) => {
     const img = new Image();
@@ -56,7 +54,7 @@ const compressImage = (dataUrl: string, maxWidth = 800, quality = 0.8): Promise<
  * Subir una imagen y retornar la URL pública
  */
 export const uploadImage = async (file: File): Promise<string> => {
-  // Convertir a dataURL
+  // Convertir a dataURL para compresión
   const dataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => resolve(e.target?.result as string);
@@ -70,19 +68,13 @@ export const uploadImage = async (file: File): Promise<string> => {
   // Si Supabase está configurado, subir al bucket
   if (isSupabaseConfigured()) {
     try {
-      const { createClient } = await import('@supabase/supabase-js');
-      const supabase = createClient(
-        import.meta.env.VITE_SUPABASE_URL,
-        import.meta.env.VITE_SUPABASE_ANON_KEY
-      );
-      
       const fileName = generateFileName(file.name);
       
       // Convertir dataURL a Blob
       const blob = await fetch(compressed).then(r => r.blob());
       
       const { error } = await supabase.storage
-        .from('products')
+        .from(BUCKET_NAME)
         .upload(fileName, blob, {
           contentType: file.type,
           upsert: false,
@@ -92,7 +84,7 @@ export const uploadImage = async (file: File): Promise<string> => {
       
       // Retornar URL pública
       const { data } = supabase.storage
-        .from('products')
+        .from(BUCKET_NAME)
         .getPublicUrl(fileName);
       
       return data.publicUrl;
@@ -154,7 +146,7 @@ export const resolveImageUrl = (url: string): string => {
     return localStorage.getItem(key) || '';
   }
   
-  // Si ya es dataUrl
+  // Si ya es dataUrl (base64)
   if (url.startsWith('data:')) {
     return url;
   }
@@ -173,17 +165,15 @@ export const deleteImage = async (url: string): Promise<void> => {
     return;
   }
   
-  if (isSupabaseConfigured() && !url.startsWith('data:') && !url.startsWith('http')) {
+  // Si es una URL de Supabase Storage
+  if (isSupabaseConfigured() && url.includes('supabase.co') && url.includes('/storage/')) {
     try {
-      const { createClient } = await import('@supabase/supabase-js');
-      const supabase = createClient(
-        import.meta.env.VITE_SUPABASE_URL,
-        import.meta.env.VITE_SUPABASE_ANON_KEY
-      );
+      // Extraer el nombre del archivo de la URL
+      const urlParts = url.split('/');
+      const fileName = urlParts[urlParts.length - 1];
       
-      const fileName = url.split('/').pop();
       if (fileName) {
-        await supabase.storage.from('products').remove([fileName]);
+        await supabase.storage.from(BUCKET_NAME).remove([fileName]);
       }
     } catch (err) {
       console.error('Error deleting image from Supabase:', err);
