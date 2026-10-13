@@ -1,5 +1,5 @@
 -- =============================================
--- EnergíaCuba - Schema SQL para Supabase
+-- EcoHavana - Schema SQL para Supabase
 -- =============================================
 
 -- Habilitar UUID

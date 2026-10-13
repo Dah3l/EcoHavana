@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { products as initialProducts, Product } from '../data/products';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
-const PRODUCTS_STORAGE_KEY = 'energicuba_products';
+const PRODUCTS_STORAGE_KEY = 'ecohavana_products';
 
 interface ProductContextType {
   products: Product[];

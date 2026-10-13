@@ -7,7 +7,7 @@
 
 import { supabase, isSupabaseConfigured } from './supabase';
 
-const STORAGE_PREFIX = 'energicuba_img_';
+const STORAGE_PREFIX = 'ecohavana_img_';
 const MAX_LOCAL_STORAGE_IMAGES = 20;
 const BUCKET_NAME = 'products';
 

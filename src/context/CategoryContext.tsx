@@ -8,7 +8,7 @@ export interface Category {
   icon: string;
 }
 
-const CATEGORIES_STORAGE_KEY = 'energicuba_categories';
+const CATEGORIES_STORAGE_KEY = 'ecohavana_categories';
 
 // Categorías por defecto
 const defaultCategories: Category[] = [

@@ -1,4 +1,4 @@
-# 🚀 Configuración de Supabase - EnergíaCuba
+# 🚀 Configuración de Supabase - EcoHavana
 
 ## ⚠️ Error: "column is_featured does not exist"
 

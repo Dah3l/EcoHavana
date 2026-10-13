@@ -1,5 +1,5 @@
 -- =============================================
--- SETUP COMPLETO: Base de datos para EnergíaCuba
+-- SETUP COMPLETO: Base de datos para EcoHavana
 -- Este script puede ejecutarse en una base de datos nueva o existente
 -- =============================================
 

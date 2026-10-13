@@ -1,4 +1,4 @@
-# EnergíaCuba - E-commerce de Estaciones de Energía
+# EcoHavana - E-commerce de Estaciones de Energía
 
 E-commerce para venta de estaciones de energía, plantas eléctricas, paneles solares y combos en Cuba.
 
@@ -20,7 +20,7 @@ E-commerce para venta de estaciones de energía, plantas eléctricas, paneles so
 ```bash
 # Clonar repositorio
 git clone <repo-url>
-cd energicuba
+cd ecohavana
 
 # Instalar dependencias
 npm install
@@ -98,7 +98,7 @@ Los archivos estáticos se generan en `dist/`.
 
 ```bash
 npm run build
-npx wrangler pages deploy dist --project-name=energicuba
+npx wrangler pages deploy dist --project-name=ecohavana
 ```
 
 ### Variables de entorno en Cloudflare Pages
@@ -220,4 +220,4 @@ npm run build
 
 ## 📄 Licencia
 
-Privado - EnergíaCuba 2024
+Privado - EcoHavana 2024
