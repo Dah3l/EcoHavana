@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
 import { ProductProvider } from './context/ProductContext';
 import { CategoryProvider } from './context/CategoryContext';
+import { ThemeProvider } from './context/ThemeContext';
 import BottomNav from './components/BottomNav';
 import ScrollToTop from './components/ScrollToTop';
 import ProductLoader from './components/ProductLoader';
@@ -20,7 +21,7 @@ function AppLayout() {
   return (
     <>
       <ScrollToTop />
-      <div className={`min-h-screen bg-[#F3F4F6] ${hideNav ? '' : 'pb-24'}`}>
+      <div className={`min-h-screen bg-[#F3F4F6] dark:bg-[#0B0F14] transition-colors duration-300 ${hideNav ? '' : 'pb-24'}`}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/catalogo" element={<Catalog />} />
@@ -39,15 +40,17 @@ function AppLayout() {
 export default function App() {
   return (
     <BrowserRouter>
-      <CategoryProvider>
-        <ProductProvider>
-          <CartProvider>
-            <ProductLoader>
-              <AppLayout />
-            </ProductLoader>
-          </CartProvider>
-        </ProductProvider>
-      </CategoryProvider>
+      <ThemeProvider>
+        <CategoryProvider>
+          <ProductProvider>
+            <CartProvider>
+              <ProductLoader>
+                <AppLayout />
+              </ProductLoader>
+            </CartProvider>
+          </ProductProvider>
+        </CategoryProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

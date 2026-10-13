@@ -17,30 +17,36 @@
 /* ============================================
    OCULTAR SCROLLBARS NATIVAS (GLOBAL)
    ============================================ */
-/* Chrome, Safari, Edge, Opera */
 *::-webkit-scrollbar {
   display: none;
   width: 0;
   height: 0;
 }
 
-/* Firefox */
 * {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
-/* Asegurar que el scroll siga funcionando */
 html, body {
   overflow-y: auto;
   overflow-x: hidden;
 }
 
+/* ============================================
+   COLORES BASE Y TRANSICIONES
+   ============================================ */
 body {
   font-family: 'Inter', system-ui, sans-serif;
   background-color: #F3F4F6;
   color: #111827;
   padding-bottom: 100px;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark body {
+  background-color: #0B0F14;
+  color: #F1F5F9;
 }
 
 /* ============================================
@@ -67,8 +73,6 @@ body {
 /* ============================================
    ANIMACIONES DEL NAVBAR
    ============================================ */
-
-/* Fade-in del navbar completo al cargar */
 @keyframes navFadeIn {
   from {
     opacity: 0;
@@ -84,7 +88,6 @@ body {
   animation: navFadeIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
-/* Press/bounce al hacer click en un icono */
 @keyframes iconPress {
   0% { transform: scale(1); }
   30% { transform: scale(0.75); }
@@ -100,7 +103,6 @@ body {
   animation: iconPress 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Pop del badge del carrito */
 @keyframes badgePop {
   0% { transform: scale(1); }
   40% { transform: scale(1.4); }
@@ -112,8 +114,24 @@ body {
   animation: badgePop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Hover suave en iconos inactivos */
 .nav-icon-btn:not(:active):hover svg {
   transition: transform 0.2s ease;
   transform: translateY(-1px) scale(1.08);
+}
+
+/* ============================================
+   SKELETONS
+   ============================================ */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .5; }
 }
