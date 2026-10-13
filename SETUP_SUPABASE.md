@@ -159,9 +159,18 @@ Verifica que el bucket `products` exista:
 | Archivo | Descripción | Cuándo usar |
 |---------|-------------|-------------|
 | `schema.sql` | Crea tablas desde cero | Base de datos nueva |
-| `seed.sql` | Carga productos iniciales | Después de crear tablas |
+| `seed.sql` | Carga productos iniciales (seguro) | Después de crear tablas |
 | `setup_complete.sql` | Setup completo + migración | Base de datos existente |
 | `migration_add_featured.sql` | Solo agrega is_featured | Si solo falta esa columna |
+| `reset_database.sql` | ⚠️ Limpia toda la base de datos | Solo si quieres empezar de cero |
+
+### ✅ Seed Seguro
+
+El archivo `seed.sql` ahora es **seguro para ejecutar múltiples veces**:
+- Usa `ON CONFLICT DO NOTHING` para categorías
+- Usa `WHERE NOT EXISTS` para productos
+- No duplica datos si ya existen
+- Puedes ejecutarlo cuantas veces quieras sin problemas
 
 ---
 
