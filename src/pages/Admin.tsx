@@ -1,21 +1,105 @@
-import { useState } from 'react';
-import { Lock, Plus, Edit, Trash2, Eye, LogOut, Package } from 'lucide-react';
+import { useState, useRef, DragEvent, ChangeEvent } from 'react';
+import { Lock, Plus, Edit, Trash2, Eye, LogOut, Package, Upload, X, Image as ImageIcon } from 'lucide-react';
 import { products, categories, categoryNames, Product } from '../data/products';
 
-// Simulated admin - in production this would use Supabase Auth
 export default function Admin() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // In production: Supabase Auth signInWithPassword
     if (email && password) {
       setIsLoggedIn(true);
     }
+  };
+
+  const openForm = (product: Product | null = null) => {
+    setEditingProduct(product);
+    setUploadedImages(product?.images || []);
+    setShowForm(true);
+  };
+
+  const closeForm = () => {
+    setShowForm(false);
+    setEditingProduct(null);
+    setUploadedImages([]);
+    setIsDragging(false);
+  };
+
+  // Procesar archivos seleccionados
+  const processFiles = (files: FileList | null) => {
+    if (!files) return;
+    const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+    
+    imageFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setUploadedImages(prev => [...prev, result]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Click en el área de subida
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Cambio en el input file
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    processFiles(e.target.files);
+    // Reset input para permitir subir el mismo archivo otra vez
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Drag & Drop handlers
+  const handleDragEnter = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    processFiles(e.dataTransfer.files);
+  };
+
+  // Eliminar imagen
+  const removeImage = (index: number) => {
+    setUploadedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Mover imagen (hacerla principal)
+  const makePrimary = (index: number) => {
+    if (index === 0) return;
+    setUploadedImages(prev => {
+      const newImages = [...prev];
+      const [moved] = newImages.splice(index, 1);
+      newImages.unshift(moved);
+      return newImages;
+    });
   };
 
   if (!isLoggedIn) {
@@ -75,7 +159,7 @@ export default function Admin() {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => openForm(null)}
             className="flex items-center gap-1 bg-[#16A34A] text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-[#15803D] transition-colors"
           >
             <Plus size={16} /> Nuevo
@@ -116,7 +200,7 @@ export default function Admin() {
             <h2 className="text-lg font-bold text-[#111827] mb-4">
               {editingProduct ? 'Editar producto' : 'Nuevo producto'}
             </h2>
-            <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); setShowForm(false); setEditingProduct(null); }}>
+            <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); closeForm(); }}>
               <div>
                 <label className="text-sm font-medium text-gray-700">Nombre</label>
                 <input className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" defaultValue={editingProduct?.name || ''} />
@@ -167,18 +251,117 @@ export default function Admin() {
                   <span className="text-sm">Visible</span>
                 </label>
               </div>
+
+              {/* ============================================
+                  ZONA DE SUBIDA DE FOTOS (FUNCIONAL)
+                  ============================================ */}
               <div>
-                <label className="text-sm font-medium text-gray-700">Fotos (Storage bucket: products)</label>
-                <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center">
-                  <p className="text-sm text-gray-400">Arrastra imágenes o haz clic para subir</p>
-                  <p className="text-xs text-gray-300 mt-1">Se suben al bucket "products" de Supabase Storage</p>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">
+                  Fotos del producto
+                </label>
+
+                {/* Input file oculto */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+
+                {/* Área de drop / click */}
+                <div
+                  onClick={handleUploadClick}
+                  onDragEnter={handleDragEnter}
+                  onDragLeave={handleDragLeave}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-200 ${
+                    isDragging
+                      ? 'border-[#16A34A] bg-[#16A34A]/5 scale-[1.02]'
+                      : 'border-gray-200 hover:border-[#16A34A]/50 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className={`mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-2 transition-colors ${
+                    isDragging ? 'bg-[#16A34A]/20' : 'bg-gray-100'
+                  }`}>
+                    <Upload className={`transition-colors ${isDragging ? 'text-[#16A34A]' : 'text-gray-400'}`} size={22} />
+                  </div>
+                  <p className="text-sm text-gray-600 font-medium">
+                    {isDragging ? '¡Suelta las imágenes aquí!' : 'Haz clic o arrastra imágenes'}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">PNG, JPG o WEBP • Máximo 5MB cada una</p>
                 </div>
+
+                {/* Previsualizaciones */}
+                {uploadedImages.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-xs text-gray-500 mb-2">
+                      {uploadedImages.length} imagen{uploadedImages.length !== 1 ? 'es' : ''} seleccionada{uploadedImages.length !== 1 ? 's' : ''}
+                      {uploadedImages.length > 1 && ' • La primera será la principal'}
+                    </p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {uploadedImages.map((img, index) => (
+                        <div key={index} className="relative group aspect-square rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+                          <img
+                            src={img}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          {/* Badge de imagen principal */}
+                          {index === 0 && (
+                            <span className="absolute top-1 left-1 bg-[#16A34A] text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+                              Principal
+                            </span>
+                          )}
+                          {/* Overlay con acciones */}
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                            {index !== 0 && (
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); makePrimary(index); }}
+                                className="w-7 h-7 bg-white/90 rounded-full flex items-center justify-center hover:bg-white transition-colors"
+                                title="Hacer principal"
+                              >
+                                <ImageIcon size={14} className="text-[#16A34A]" />
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); removeImage(index); }}
+                              className="w-7 h-7 bg-white/90 rounded-full flex items-center justify-center hover:bg-white transition-colors"
+                              title="Eliminar"
+                            >
+                              <X size={14} className="text-red-500" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      {/* Botón añadir más */}
+                      <button
+                        type="button"
+                        onClick={handleUploadClick}
+                        className="aspect-square rounded-lg border-2 border-dashed border-gray-200 hover:border-[#16A34A] hover:bg-[#16A34A]/5 flex flex-col items-center justify-center gap-1 transition-all"
+                      >
+                        <Plus size={20} className="text-gray-400" />
+                        <span className="text-[10px] text-gray-400">Añadir</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                  <Package size={12} />
+                  En producción se suben al bucket "products" de Supabase Storage
+                </p>
               </div>
+
               <div className="flex gap-2 pt-2">
                 <button type="submit" className="flex-1 py-2.5 bg-[#16A34A] text-white rounded-xl font-medium hover:bg-[#15803D]">
                   {editingProduct ? 'Guardar cambios' : 'Crear producto'}
                 </button>
-                <button type="button" onClick={() => { setShowForm(false); setEditingProduct(null); }} className="px-4 py-2.5 bg-gray-100 text-gray-600 rounded-xl font-medium hover:bg-gray-200">
+                <button type="button" onClick={closeForm} className="px-4 py-2.5 bg-gray-100 text-gray-600 rounded-xl font-medium hover:bg-gray-200">
                   Cancelar
                 </button>
               </div>
@@ -233,7 +416,7 @@ export default function Admin() {
                         <Eye size={14} />
                       </button>
                       <button
-                        onClick={() => { setEditingProduct(product); setShowForm(true); }}
+                        onClick={() => openForm(product)}
                         className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                       >
                         <Edit size={14} />
