@@ -1,12 +1,12 @@
 import { useState, useRef, DragEvent, ChangeEvent, useEffect } from 'react';
-import { Lock, Plus, Edit, Trash2, Eye, LogOut, Package, Upload, X, Image as ImageIcon, Loader2, RefreshCw } from 'lucide-react';
+import { Lock, Plus, Edit, Trash2, Eye, LogOut, Package, Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { categories, categoryNames, Product } from '../data/products';
 import { useProducts } from '../context/ProductContext';
 import { uploadImage, resolveImageUrl, fileToDataUrl } from '../lib/storage';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 export default function Admin() {
-  const { products, updateProduct, addProduct, deleteProduct, loading, refreshProducts } = useProducts();
+  const { products, updateProduct, addProduct, deleteProduct, loading } = useProducts();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,16 +27,11 @@ export default function Admin() {
 
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         setIsLoggedIn(!!session);
-        // Recargar productos cuando el estado de autenticación cambie
-        if (session) {
-          console.log('User logged in, refreshing products...');
-          refreshProducts();
-        }
       });
 
       return () => subscription.unsubscribe();
     }
-  }, [refreshProducts]);
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -210,10 +205,8 @@ export default function Admin() {
     if (editingProduct) {
       updateProduct(editingProduct.id, productData);
     } else {
-      // Generar UUID temporal (Supabase lo reemplazará con su propio UUID)
-      const tempId = crypto.randomUUID();
       const newProduct: Product = {
-        id: tempId,
+        id: `product-${Date.now()}`,
         ...productData,
       };
       addProduct(newProduct);
@@ -283,14 +276,6 @@ export default function Admin() {
           <p className="text-gray-500 text-sm">Gestión de productos</p>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={refreshProducts}
-            disabled={loading}
-            className="flex items-center gap-1 bg-blue-100 text-blue-600 px-3 py-2 rounded-xl text-sm hover:bg-blue-200 transition-colors disabled:opacity-50"
-            title="Recargar productos desde Supabase"
-          >
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-          </button>
           <button
             onClick={() => openForm(null)}
             className="flex items-center gap-1 bg-[#16A34A] text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-[#15803D] transition-colors"
