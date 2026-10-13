@@ -30,28 +30,31 @@ npm install
 
 ## 🗄 Configuración de Supabase
 
-### 1. Ejecutar Schema SQL
+### ⚠️ ¿Error "column is_featured does not exist"?
 
-Ve a **Supabase → SQL Editor** y ejecuta el contenido de `schema.sql`:
+Si ya tienes tablas creadas y ves este error, consulta **[SETUP_SUPABASE.md](./SETUP_SUPABASE.md)** para la solución rápida.
 
-```sql
--- Copia y pega el contenido de schema.sql
-```
+### Opción 1: Base de Datos Existente (Recomendado)
 
-Esto creará:
-- `categories` - Categorías de productos
-- `products` - Catálogo de productos
-- `orders` - Registro de pedidos
-- RLS policies (lectura pública, escritura solo autenticados)
-- Storage bucket "products" (público para lectura)
-
-### 2. Cargar Datos Iniciales
-
-Ejecuta `seed.sql` en el SQL Editor:
+Si ya tienes tablas creadas, ejecuta `setup_complete.sql` en **Supabase → SQL Editor**:
 
 ```sql
--- Copia y pega el contenido de seed.sql
+-- Copia y pega el contenido de setup_complete.sql
 ```
+
+Este script:
+- ✅ Crea tablas si no existen
+- ✅ Agrega columnas faltantes (is_featured)
+- ✅ Crea índices y políticas RLS
+- ✅ Configura el bucket de Storage
+- ✅ Seguro para ejecutar múltiples veces
+
+### Opción 2: Base de Datos Nueva
+
+Si estás empezando desde cero:
+
+1. Ejecuta `schema.sql` en **Supabase → SQL Editor**
+2. Luego ejecuta `seed.sql` para cargar los productos
 
 ### 3. Crear Usuario Admin
 
@@ -61,7 +64,7 @@ En **Supabase → Authentication → Users**, crea un usuario con email y contra
 
 Ve a **Supabase → Storage** y verifica que el bucket `products` existe:
 - **Público:** Sí (para lectura de imágenes)
-- **Políticas:** Ya configuradas en schema.sql
+- **Políticas:** Ya configuradas en los scripts SQL
 
 ## 🔨 Desarrollo
 
