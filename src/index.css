@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Habilitar modo oscuro basado en clase para Tailwind v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-energy: #16A34A;
   --color-energy-dark: #15803D;
