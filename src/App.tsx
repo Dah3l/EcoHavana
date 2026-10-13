@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
 import BottomNav from './components/BottomNav';
+import ScrollToTop from './components/ScrollToTop';
 import Home from './pages/Home';
 import Catalog from './pages/Catalog';
 import ProductDetail from './pages/ProductDetail';
@@ -13,6 +14,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <CartProvider>
+        <ScrollToTop />
         <div className="min-h-screen bg-[#F3F4F6]">
           <Routes>
             <Route path="/" element={<Home />} />
