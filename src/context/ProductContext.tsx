@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { products as initialProducts, Product } from '../data/products';
 import { resolveImageUrl } from '../lib/storage';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 const PRODUCTS_STORAGE_KEY = 'energicuba_products';
 
@@ -10,12 +11,48 @@ interface ProductContextType {
   addProduct: (product: Product) => void;
   deleteProduct: (id: string) => void;
   getProduct: (id: string) => Product | undefined;
+  loading: boolean;
 }
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
-// Cargar productos desde localStorage o usar iniciales
-const loadProducts = (): Product[] => {
+// Cargar productos desde Supabase o localStorage
+const loadProducts = async (): Promise<Product[]> => {
+  // Intentar cargar desde Supabase primero
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          *,
+          categories (
+            slug
+          )
+        `);
+      
+      if (!error && data && data.length > 0) {
+        // Mapear datos de Supabase al formato de Product
+        return data.map((row: any) => ({
+          id: row.id,
+          name: row.name,
+          description: row.description || '',
+          price: row.price,
+          category: row.categories?.slug || 'estaciones',
+          specs: row.specs || [],
+          images: row.images || [],
+          warranty: row.warranty || '',
+          transport: row.transport || '',
+          offer: row.is_offer || false,
+          isNew: row.is_new || false,
+          visible: row.is_visible !== false,
+        }));
+      }
+    } catch (err) {
+      console.warn('Error loading from Supabase, falling back to localStorage:', err);
+    }
+  }
+
+  // Fallback: cargar desde localStorage
   try {
     const stored = localStorage.getItem(PRODUCTS_STORAGE_KEY);
     if (stored) {
@@ -27,11 +64,13 @@ const loadProducts = (): Product[] => {
   } catch (e) {
     console.error('Error loading products from localStorage:', e);
   }
+  
+  // Si no hay datos guardados, usar productos iniciales
   return initialProducts;
 };
 
-// Guardar productos en localStorage
-const saveProducts = (products: Product[]) => {
+// Guardar productos en localStorage (fallback)
+const saveProductsToLocal = (products: Product[]) => {
   try {
     localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
   } catch (e) {
@@ -39,26 +78,89 @@ const saveProducts = (products: Product[]) => {
   }
 };
 
-export function ProductProvider({ children }: { children: ReactNode }) {
-  const [products, setProducts] = useState<Product[]>(loadProducts);
+// Guardar producto en Supabase
+const saveProductToSupabase = async (product: Product, isNew: boolean = false) => {
+  if (!isSupabaseConfigured()) return;
 
-  // Persistir cambios
+  try {
+    // Obtener el category_id
+    const { data: categoryData } = await supabase
+      .from('categories')
+      .select('id')
+      .eq('slug', product.category)
+      .single();
+
+    const productData = {
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      category_id: categoryData?.id,
+      specs: product.specs,
+      images: product.images,
+      warranty: product.warranty,
+      transport: product.transport,
+      is_offer: product.offer,
+      is_new: product.isNew,
+      is_visible: product.visible,
+    };
+
+    if (isNew) {
+      const { error } = await supabase.from('products').insert({ ...productData, id: product.id });
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from('products').update(productData).eq('id', product.id);
+      if (error) throw error;
+    }
+  } catch (err) {
+    console.warn('Error saving to Supabase:', err);
+  }
+};
+
+export function ProductProvider({ children }: { children: ReactNode }) {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Cargar productos al montar
   useEffect(() => {
-    saveProducts(products);
+    loadProducts().then((loaded) => {
+      setProducts(loaded);
+      setLoading(false);
+    });
+  }, []);
+
+  // Persistir cambios en localStorage (fallback)
+  useEffect(() => {
+    if (products.length > 0) {
+      saveProductsToLocal(products);
+    }
   }, [products]);
 
-  const updateProduct = (id: string, updates: Partial<Product>) => {
-    setProducts(prev =>
-      prev.map(p => (p.id === id ? { ...p, ...updates } : p))
-    );
+  const updateProduct = async (id: string, updates: Partial<Product>) => {
+    setProducts(prev => {
+      const updated = prev.map(p => (p.id === id ? { ...p, ...updates } : p));
+      const updatedProduct = updated.find(p => p.id === id);
+      if (updatedProduct) {
+        saveProductToSupabase(updatedProduct, false);
+      }
+      return updated;
+    });
   };
 
-  const addProduct = (product: Product) => {
+  const addProduct = async (product: Product) => {
     setProducts(prev => [...prev, product]);
+    await saveProductToSupabase(product, true);
   };
 
-  const deleteProduct = (id: string) => {
+  const deleteProduct = async (id: string) => {
     setProducts(prev => prev.filter(p => p.id !== id));
+    
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase.from('products').delete().eq('id', id);
+      } catch (err) {
+        console.warn('Error deleting from Supabase:', err);
+      }
+    }
   };
 
   const getProduct = (id: string) => {
@@ -66,7 +168,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <ProductContext.Provider value={{ products, updateProduct, addProduct, deleteProduct, getProduct }}>
+    <ProductContext.Provider value={{ products, updateProduct, addProduct, deleteProduct, getProduct, loading }}>
       {children}
     </ProductContext.Provider>
   );

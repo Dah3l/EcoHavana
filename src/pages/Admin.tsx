@@ -1,14 +1,16 @@
-import { useState, useRef, DragEvent, ChangeEvent } from 'react';
+import { useState, useRef, DragEvent, ChangeEvent, useEffect } from 'react';
 import { Lock, Plus, Edit, Trash2, Eye, LogOut, Package, Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { categories, categoryNames, Product } from '../data/products';
 import { useProducts } from '../context/ProductContext';
 import { uploadImage, resolveImageUrl, fileToDataUrl } from '../lib/storage';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 export default function Admin() {
-  const { products, updateProduct, addProduct, deleteProduct } = useProducts();
+  const { products, updateProduct, addProduct, deleteProduct, loading } = useProducts();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
@@ -16,11 +18,48 @@ export default function Admin() {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email && password) {
-      setIsLoggedIn(true);
+  // Verificar sesión al montar
+  useEffect(() => {
+    if (isSupabaseConfigured()) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        setIsLoggedIn(!!session);
+      });
+
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        setIsLoggedIn(!!session);
+      });
+
+      return () => subscription.unsubscribe();
     }
+  }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+
+    if (isSupabaseConfigured()) {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        setLoginError(error.message);
+        return;
+      }
+    } else {
+      // Fallback para demo sin Supabase
+      if (email && password) {
+        setIsLoggedIn(true);
+      }
+    }
+  };
+
+  const handleLogout = async () => {
+    if (isSupabaseConfigured()) {
+      await supabase.auth.signOut();
+    }
+    setIsLoggedIn(false);
   };
 
   const openForm = (product: Product | null = null) => {
@@ -207,6 +246,11 @@ export default function Admin() {
                 placeholder="••••••••"
               />
             </div>
+            {loginError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                {loginError}
+              </div>
+            )}
             <button
               type="submit"
               className="w-full py-3 bg-[#16A34A] text-white rounded-xl font-medium hover:bg-[#15803D] transition-colors"
@@ -238,7 +282,7 @@ export default function Admin() {
             <Plus size={16} /> Nuevo
           </button>
           <button
-            onClick={() => setIsLoggedIn(false)}
+            onClick={handleLogout}
             className="flex items-center gap-1 bg-gray-100 text-gray-600 px-3 py-2 rounded-xl text-sm hover:bg-gray-200 transition-colors"
           >
             <LogOut size={16} />

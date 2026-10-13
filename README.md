@@ -25,17 +25,14 @@ cd energicuba
 # Instalar dependencias
 npm install
 
-# Copiar variables de entorno
-cp .env.example .env.local
-
-# Editar .env.local con tus credenciales de Supabase
+# El archivo .env.local ya está configurado con las credenciales de Supabase
 ```
 
-## 🗄 Configuración de Base de Datos
+## 🗄 Configuración de Supabase
 
-### 1. Crear tablas
+### 1. Ejecutar Schema SQL
 
-Ejecuta `schema.sql` en el SQL Editor de Supabase:
+Ve a **Supabase → SQL Editor** y ejecuta el contenido de `schema.sql`:
 
 ```sql
 -- Copia y pega el contenido de schema.sql
@@ -48,7 +45,7 @@ Esto creará:
 - RLS policies (lectura pública, escritura solo autenticados)
 - Storage bucket "products" (público para lectura)
 
-### 2. Cargar datos iniciales
+### 2. Cargar Datos Iniciales
 
 Ejecuta `seed.sql` en el SQL Editor:
 
@@ -56,15 +53,15 @@ Ejecuta `seed.sql` en el SQL Editor:
 -- Copia y pega el contenido de seed.sql
 ```
 
-### 3. Crear usuario admin
+### 3. Crear Usuario Admin
 
-En Supabase → Authentication → Users, crea un usuario con email y contraseña. Este usuario tendrá acceso al panel de administración.
+En **Supabase → Authentication → Users**, crea un usuario con email y contraseña. Este usuario tendrá acceso al panel de administración.
 
-### 4. Configurar Storage Bucket
+### 4. Verificar Storage Bucket
 
-En Supabase → Storage, crea un bucket llamado `products`:
+Ve a **Supabase → Storage** y verifica que el bucket `products` existe:
 - **Público:** Sí (para lectura de imágenes)
-- **Políticas:** Escritura solo para usuarios autenticados
+- **Políticas:** Ya configuradas en schema.sql
 
 ## 🔨 Desarrollo
 
@@ -106,8 +103,8 @@ npx wrangler pages deploy dist --project-name=energicuba
 Añade en Cloudflare Pages → Settings → Environment variables:
 
 ```
-VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
-VITE_SUPABASE_ANON_KEY=tu-anon-key
+VITE_SUPABASE_URL=https://lehknggjclanufkdqxlj.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 ## 📂 Estructura del Proyecto
@@ -115,11 +112,16 @@ VITE_SUPABASE_ANON_KEY=tu-anon-key
 ```
 ├── src/
 │   ├── components/
-│   │   └── BottomNav.tsx      # Navegación flotante tipo píldora
+│   │   ├── BottomNav.tsx      # Navegación flotante tipo píldora
+│   │   └── ScrollToTop.tsx    # Scroll al inicio en navegación
 │   ├── context/
-│   │   └── CartContext.tsx     # Estado del carrito
+│   │   ├── CartContext.tsx     # Estado del carrito
+│   │   └── ProductContext.tsx  # Estado de productos (Supabase/localStorage)
 │   ├── data/
-│   │   └── products.ts        # Catálogo de productos
+│   │   └── products.ts        # Catálogo inicial de productos
+│   ├── lib/
+│   │   ├── supabase.ts        # Cliente de Supabase
+│   │   └── storage.ts         # Servicio de almacenamiento de imágenes
 │   ├── pages/
 │   │   ├── Home.tsx           # Página de inicio
 │   │   ├── Catalog.tsx        # Catálogo con filtros
@@ -127,13 +129,13 @@ VITE_SUPABASE_ANON_KEY=tu-anon-key
 │   │   ├── Cart.tsx           # Carrito + checkout WhatsApp
 │   │   ├── Contact.tsx        # Contacto
 │   │   ├── Offers.tsx         # Ofertas
-│   │   └── Admin.tsx          # Panel admin
+│   │   └── Admin.tsx          # Panel admin (Supabase Auth)
 │   ├── App.tsx                # Router principal
 │   ├── main.tsx               # Entry point
 │   └── index.css              # Estilos + Tailwind
-├── schema.sql                 # Schema de base de datos
+├── schema.sql                 # Schema de base de datos + RLS
 ├── seed.sql                   # Datos iniciales
-├── .env.example               # Variables de entorno
+├── .env.local                 # Variables de entorno (configuradas)
 └── README.md
 ```
 
@@ -156,15 +158,28 @@ VITE_SUPABASE_ANON_KEY=tu-anon-key
 | `/ofertas` | Productos en oferta |
 | `/carrito` | Carrito + checkout WhatsApp |
 | `/contacto` | Información de contacto |
-| `/admin` | Panel de administración (requiere auth) |
+| `/admin` | Panel de administración (requiere Supabase Auth) |
 
 ## 🔐 Seguridad
 
 - **RLS activado** en todas las tablas
 - **Lectura pública:** Cualquier usuario puede ver productos
 - **Escritura restringida:** Solo usuarios autenticados (admin)
-- **Sin registro público:** Solo login para administradores
+- **Supabase Auth:** Login seguro para administradores
 - **Storage:** Bucket público para lectura, escritura solo auth
+
+## 🖼 Sistema de Imágenes
+
+Las imágenes se gestionan de forma híbrida:
+
+1. **Con Supabase configurado:**
+   - Las imágenes se suben al bucket `products` de Supabase Storage
+   - Se comprimen automáticamente (max 800px, 80% calidad)
+   - Se obtienen URLs públicas de Supabase
+
+2. **Sin Supabase (fallback):**
+   - Las imágenes se guardan en localStorage como base64
+   - Límite de 20 imágenes (limpieza automática)
 
 ## 📞 WhatsApp Integration
 
@@ -178,7 +193,7 @@ VITE_SUPABASE_ANON_KEY=tu-anon-key
 - Transporte según zona (La Habana principalmente)
 - Garantía variable por producto (7 días a 1 mes)
 - El panel admin permite CRUD completo de productos
-- Las imágenes se almacenan en Supabase Storage bucket "products"
+- Las imágenes se suben automáticamente a Supabase Storage
 
 ## 🐛 Troubleshooting
 
@@ -186,7 +201,12 @@ VITE_SUPABASE_ANON_KEY=tu-anon-key
 Verifica que tu dominio esté en Supabase → Authentication → URL Configuration
 
 **Imágenes no cargan:**
-Verifica que el bucket "products" existe y tiene políticas de lectura pública.
+- Verifica que el bucket "products" existe en Supabase → Storage
+- Verifica las políticas del bucket (lectura pública)
+
+**Error de autenticación:**
+- Verifica que el usuario admin existe en Supabase → Authentication → Users
+- Verifica que el email y contraseña son correctos
 
 **Build falla:**
 ```bash
