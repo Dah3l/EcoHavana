@@ -1,0 +1,268 @@
+import { useState } from 'react';
+import { Lock, Plus, Edit, Trash2, Eye, LogOut, Package } from 'lucide-react';
+import { products, categories, categoryNames, Product } from '../data/products';
+
+// Simulated admin - in production this would use Supabase Auth
+export default function Admin() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [showForm, setShowForm] = useState(false);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    // In production: Supabase Auth signInWithPassword
+    if (email && password) {
+      setIsLoggedIn(true);
+    }
+  };
+
+  if (!isLoggedIn) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-12 animate-fade-in">
+        <div className="bg-white rounded-2xl p-8 shadow-sm">
+          <div className="text-center mb-6">
+            <div className="w-14 h-14 bg-[#16A34A]/10 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Lock className="text-[#16A34A]" size={24} />
+            </div>
+            <h1 className="text-xl font-bold text-[#111827]">Admin Panel</h1>
+            <p className="text-gray-500 text-sm">Acceso solo para administradores</p>
+          </div>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-1">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#16A34A]"
+                placeholder="admin@energicuba.com"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-1">Contraseña</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#16A34A]"
+                placeholder="••••••••"
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full py-3 bg-[#16A34A] text-white rounded-xl font-medium hover:bg-[#15803D] transition-colors"
+            >
+              Iniciar sesión
+            </button>
+          </form>
+          <p className="text-center text-xs text-gray-400 mt-4">
+            Solo administradores autorizados. Sin registro público.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto px-4 py-6 animate-fade-in">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-[#111827]">Panel Admin</h1>
+          <p className="text-gray-500 text-sm">Gestión de productos</p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-1 bg-[#16A34A] text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-[#15803D] transition-colors"
+          >
+            <Plus size={16} /> Nuevo
+          </button>
+          <button
+            onClick={() => setIsLoggedIn(false)}
+            className="flex items-center gap-1 bg-gray-100 text-gray-600 px-3 py-2 rounded-xl text-sm hover:bg-gray-200 transition-colors"
+          >
+            <LogOut size={16} />
+          </button>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div className="bg-white rounded-xl p-4 shadow-sm">
+          <p className="text-2xl font-bold text-[#111827]">{products.length}</p>
+          <p className="text-xs text-gray-500">Total productos</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 shadow-sm">
+          <p className="text-2xl font-bold text-[#16A34A]">{products.filter(p => p.offer).length}</p>
+          <p className="text-xs text-gray-500">En oferta</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 shadow-sm">
+          <p className="text-2xl font-bold text-[#111827]">{products.filter(p => p.isNew).length}</p>
+          <p className="text-xs text-gray-500">Nuevos</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 shadow-sm">
+          <p className="text-2xl font-bold text-[#111827]">{categories.length - 1}</p>
+          <p className="text-xs text-gray-500">Categorías</p>
+        </div>
+      </div>
+
+      {/* Product form modal */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <h2 className="text-lg font-bold text-[#111827] mb-4">
+              {editingProduct ? 'Editar producto' : 'Nuevo producto'}
+            </h2>
+            <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); setShowForm(false); setEditingProduct(null); }}>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Nombre</label>
+                <input className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" defaultValue={editingProduct?.name || ''} />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Descripción</label>
+                <textarea className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" rows={3} defaultValue={editingProduct?.description || ''} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Precio USD</label>
+                  <input type="number" className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" defaultValue={editingProduct?.price || ''} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Categoría</label>
+                  <select className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" defaultValue={editingProduct?.category || 'estaciones'}>
+                    {categories.filter(c => c.id !== 'all').map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Especificaciones (una por línea)</label>
+                <textarea className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" rows={3} defaultValue={editingProduct?.specs.join('\n') || ''} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Garantía</label>
+                  <input className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" defaultValue={editingProduct?.warranty || ''} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Transporte</label>
+                  <input className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" defaultValue={editingProduct?.transport || ''} />
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" className="rounded" defaultChecked={editingProduct?.offer || false} />
+                  <span className="text-sm">Oferta</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" className="rounded" defaultChecked={editingProduct?.isNew || false} />
+                  <span className="text-sm">Nuevo</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" className="rounded" defaultChecked={editingProduct?.visible ?? true} />
+                  <span className="text-sm">Visible</span>
+                </label>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Fotos (Storage bucket: products)</label>
+                <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center">
+                  <p className="text-sm text-gray-400">Arrastra imágenes o haz clic para subir</p>
+                  <p className="text-xs text-gray-300 mt-1">Se suben al bucket "products" de Supabase Storage</p>
+                </div>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button type="submit" className="flex-1 py-2.5 bg-[#16A34A] text-white rounded-xl font-medium hover:bg-[#15803D]">
+                  {editingProduct ? 'Guardar cambios' : 'Crear producto'}
+                </button>
+                <button type="button" onClick={() => { setShowForm(false); setEditingProduct(null); }} className="px-4 py-2.5 bg-gray-100 text-gray-600 rounded-xl font-medium hover:bg-gray-200">
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Products table */}
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Producto</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Categoría</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Precio</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Estado</th>
+                <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {products.map((product) => (
+                <tr key={product.id} className="hover:bg-gray-50/50">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+                        <img src={product.images[0]} alt="" className="w-full h-full object-cover" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-[#111827] truncate max-w-[200px]">{product.name}</p>
+                        <p className="text-xs text-gray-400">{product.id}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                      {categoryNames[product.category]}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-sm font-medium text-[#111827]">${product.price}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-1">
+                      {product.visible && <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded">Visible</span>}
+                      {product.offer && <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded">Oferta</span>}
+                      {product.isNew && <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">Nuevo</span>}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-1">
+                      <button className="p-1.5 text-gray-400 hover:text-[#16A34A] hover:bg-green-50 rounded-lg transition-colors">
+                        <Eye size={14} />
+                      </button>
+                      <button
+                        onClick={() => { setEditingProduct(product); setShowForm(true); }}
+                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      >
+                        <Edit size={14} />
+                      </button>
+                      <button className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Supabase info */}
+      <div className="mt-6 bg-blue-50 rounded-xl p-4 border border-blue-100">
+        <div className="flex items-start gap-2">
+          <Package size={16} className="text-blue-600 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-blue-800">Backend: Supabase</p>
+            <p className="text-xs text-blue-600 mt-1">
+              En producción, este panel se conecta a Supabase Auth para autenticación y a Postgres para CRUD de productos.
+              Las imágenes se suben al bucket "products" de Supabase Storage.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
