@@ -9,7 +9,15 @@ export default function Home() {
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const { products } = useProducts();
-  const featured = products.filter(p => p.isNew || p.offer).slice(0, 4);
+  // Productos destacados: prioriza los marcados como featured, luego isNew y offer
+  const featured = products
+    .filter(p => p.featured || p.isNew || p.offer)
+    .sort((a, b) => {
+      if (a.featured && !b.featured) return -1;
+      if (!a.featured && b.featured) return 1;
+      return 0;
+    })
+    .slice(0, 4);
 
   return (
     <div className="animate-fade-in">

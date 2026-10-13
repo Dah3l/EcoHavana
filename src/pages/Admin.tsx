@@ -198,6 +198,7 @@ export default function Admin() {
       images: uploadedImages,
       offer: formData.get('offer') === 'on',
       isNew: formData.get('isNew') === 'on',
+      featured: formData.get('featured') === 'on',
       visible: formData.get('visible') === 'on',
     };
     
@@ -291,22 +292,26 @@ export default function Admin() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <p className="text-2xl font-bold text-[#111827]">{products.length}</p>
-          <p className="text-xs text-gray-500">Total productos</p>
+          <p className="text-xs text-gray-500">Total</p>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <p className="text-2xl font-bold text-[#16A34A]">{products.filter(p => p.offer).length}</p>
-          <p className="text-xs text-gray-500">En oferta</p>
+        <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-[#16A34A]">
+          <p className="text-2xl font-bold text-[#16A34A]">{products.filter(p => p.featured).length}</p>
+          <p className="text-xs text-gray-500">⭐ Destacados</p>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <p className="text-2xl font-bold text-[#111827]">{products.filter(p => p.isNew).length}</p>
-          <p className="text-xs text-gray-500">Nuevos</p>
+        <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-red-500">
+          <p className="text-2xl font-bold text-red-600">{products.filter(p => p.offer).length}</p>
+          <p className="text-xs text-gray-500">🔥 Ofertas</p>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <p className="text-2xl font-bold text-[#111827]">{categories.length - 1}</p>
-          <p className="text-xs text-gray-500">Categorías</p>
+        <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-blue-500">
+          <p className="text-2xl font-bold text-blue-600">{products.filter(p => p.isNew).length}</p>
+          <p className="text-xs text-gray-500">✨ Nuevos</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-gray-400">
+          <p className="text-2xl font-bold text-gray-600">{products.filter(p => p.visible).length}</p>
+          <p className="text-xs text-gray-500">✓ Visibles</p>
         </div>
       </div>
 
@@ -354,19 +359,78 @@ export default function Admin() {
                   <input name="transport" className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" defaultValue={editingProduct?.transport || ''} />
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2">
-                  <input name="offer" type="checkbox" value="on" className="rounded" defaultChecked={editingProduct?.offer || false} />
-                  <span className="text-sm">Oferta</span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input name="isNew" type="checkbox" value="on" className="rounded" defaultChecked={editingProduct?.isNew || false} />
-                  <span className="text-sm">Nuevo</span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input name="visible" type="checkbox" value="on" className="rounded" defaultChecked={editingProduct?.visible ?? true} />
-                  <span className="text-sm">Visible</span>
-                </label>
+              {/* Estado del producto */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-3 block">Estado y visibilidad</label>
+                <div className="space-y-2">
+                  <label className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:border-[#16A34A]/30 hover:bg-[#16A34A]/5 cursor-pointer transition-all">
+                    <input 
+                      name="featured" 
+                      type="checkbox" 
+                      value="on" 
+                      className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#16A34A] focus:ring-[#16A34A]" 
+                      defaultChecked={editingProduct?.featured || false} 
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-[#111827]">⭐ Destacado</span>
+                        <span className="text-[10px] bg-[#16A34A]/10 text-[#16A34A] px-1.5 py-0.5 rounded">Inicio</span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5">Aparece en la sección "Destacados" de la página de inicio</p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:border-red-300 hover:bg-red-50 cursor-pointer transition-all">
+                    <input 
+                      name="offer" 
+                      type="checkbox" 
+                      value="on" 
+                      className="mt-0.5 w-4 h-4 rounded border-gray-300 text-red-500 focus:ring-red-500" 
+                      defaultChecked={editingProduct?.offer || false} 
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-[#111827]">🔥 Oferta</span>
+                        <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded">Ofertas</span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5">Aparece en la página de "Ofertas" con etiqueta especial</p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-all">
+                    <input 
+                      name="isNew" 
+                      type="checkbox" 
+                      value="on" 
+                      className="mt-0.5 w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500" 
+                      defaultChecked={editingProduct?.isNew || false} 
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-[#111827]">✨ Nuevo</span>
+                        <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">Catálogo</span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5">Muestra etiqueta "NUEVO" en el catálogo y puede aparecer en destacados</p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:border-gray-400 hover:bg-gray-50 cursor-pointer transition-all">
+                    <input 
+                      name="visible" 
+                      type="checkbox" 
+                      value="on" 
+                      className="mt-0.5 w-4 h-4 rounded border-gray-300 text-gray-600 focus:ring-gray-500" 
+                      defaultChecked={editingProduct?.visible ?? true} 
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-[#111827]">👁️ Visible</span>
+                        <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">Público</span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5">El producto es visible para los clientes. Desmarca para ocultarlo temporalmente</p>
+                    </div>
+                  </label>
+                </div>
               </div>
 
               {/* ============================================
@@ -527,10 +591,15 @@ export default function Admin() {
                   </td>
                   <td className="px-4 py-3 text-sm font-medium text-[#111827]">${product.price}</td>
                   <td className="px-4 py-3">
-                    <div className="flex gap-1">
-                      {product.visible && <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded">Visible</span>}
-                      {product.offer && <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded">Oferta</span>}
-                      {product.isNew && <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">Nuevo</span>}
+                    <div className="flex flex-wrap gap-1">
+                      {product.visible ? (
+                        <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded">✓ Visible</span>
+                      ) : (
+                        <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">○ Oculto</span>
+                      )}
+                      {product.featured && <span className="text-[10px] bg-[#16A34A]/10 text-[#16A34A] px-1.5 py-0.5 rounded">⭐ Destacado</span>}
+                      {product.offer && <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded">🔥 Oferta</span>}
+                      {product.isNew && <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">✨ Nuevo</span>}
                     </div>
                   </td>
                   <td className="px-4 py-3">

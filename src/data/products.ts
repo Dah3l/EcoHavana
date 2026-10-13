@@ -10,6 +10,7 @@ export interface Product {
   transport: string;
   offer?: boolean;
   isNew?: boolean;
+  featured?: boolean;
   visible: boolean;
 }
 
