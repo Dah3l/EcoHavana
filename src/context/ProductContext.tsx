@@ -44,6 +44,7 @@ const loadProducts = async (): Promise<Product[]> => {
           transport: row.transport || '',
           offer: row.is_offer || false,
           isNew: row.is_new || false,
+          featured: row.is_featured || false,
           visible: row.is_visible !== false,
         }));
       }
@@ -101,6 +102,7 @@ const saveProductToSupabase = async (product: Product, isNew: boolean = false) =
       transport: product.transport,
       is_offer: product.offer,
       is_new: product.isNew,
+      is_featured: product.featured,
       is_visible: product.visible,
     };
 

@@ -13,7 +13,7 @@ INSERT INTO categories (name, slug, icon) VALUES
 -- =============================================
 -- ESTACIONES DE ENERGÍA
 -- =============================================
-INSERT INTO products (name, description, price, category_id, specs, warranty, transport, is_visible)
+INSERT INTO products (name, description, price, category_id, specs, warranty, transport, is_featured, is_visible)
 VALUES (
   'EcoFlow Delta 3 Plus',
   'Estación de energía portátil de alta capacidad, ideal para el hogar. Con capacidad de 1024Wh y picos de hasta 3600W, perfecta para alimentar electrodomésticos esenciales durante apagones.',
@@ -22,10 +22,11 @@ VALUES (
   '["1024Wh capacidad", "Picos 3600W", "2 paneles 500W compatibles", "Salidas múltiples", "Carga rápida 80min"]'::jsonb,
   '7 días',
   'Transporte incluido',
+  true,
   true
 );
 
-INSERT INTO products (name, description, price, category_id, specs, warranty, transport, is_new, is_visible)
+INSERT INTO products (name, description, price, category_id, specs, warranty, transport, is_new, is_featured, is_visible)
 VALUES (
   'EcoFlow Delta 3 Max',
   'La estación de energía más potente de la línea Delta 3. Con 2048Wh de capacidad, ideal para uso prolongado y equipos de mayor consumo.',
@@ -34,6 +35,7 @@ VALUES (
   '["2048Wh capacidad", "Picos 4000W", "Paneles solares compatibles", "Salida USB-C 100W", "Pantalla LED"]'::jsonb,
   '7 días',
   'Transporte incluido',
+  true,
   true,
   true
 );
@@ -104,7 +106,7 @@ VALUES (
 -- =============================================
 -- PANELES SOLARES
 -- =============================================
-INSERT INTO products (name, description, price, category_id, specs, warranty, transport, is_offer, is_visible)
+INSERT INTO products (name, description, price, category_id, specs, warranty, transport, is_offer, is_featured, is_visible)
 VALUES (
   'LDK Solar Hi-Tech 720W',
   'Panel solar de alta eficiencia de 720W. Tecnología Hi-Tech para máxima producción energética. ¡REBAJA!',
@@ -113,6 +115,7 @@ VALUES (
   '["720W potencia", "Tecnología Hi-Tech", "Alta eficiencia", "Resistente a intemperie", "Garantía rendimiento"]'::jsonb,
   '1 mes',
   'Transporte incluido',
+  true,
   true,
   true
 );
@@ -180,7 +183,7 @@ VALUES (
   true
 );
 
-INSERT INTO products (name, description, price, category_id, specs, warranty, transport, is_new, is_visible)
+INSERT INTO products (name, description, price, category_id, specs, warranty, transport, is_new, is_featured, is_visible)
 VALUES (
   'Combo Delta 3 Plus + 2 Cables 10m + 2 Paneles 450W',
   'Kit doble para máxima carga solar. Delta 3 Plus con dos paneles de 450W y dos cables de 10m.',
@@ -189,6 +192,7 @@ VALUES (
   '["Delta 3 Plus 1024Wh", "2x Paneles 450W", "2x Cables 10m", "Carga solar doble", "Máxima autonomía"]'::jsonb,
   '7 días',
   'Transporte incluido',
+  true,
   true,
   true
 );

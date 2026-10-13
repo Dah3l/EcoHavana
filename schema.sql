@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS products (
   transport TEXT,
   is_offer BOOLEAN DEFAULT FALSE,
   is_new BOOLEAN DEFAULT FALSE,
+  is_featured BOOLEAN DEFAULT FALSE,
   is_visible BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -57,6 +58,8 @@ CREATE TABLE IF NOT EXISTS orders (
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
 CREATE INDEX IF NOT EXISTS idx_products_visible ON products(is_visible);
 CREATE INDEX IF NOT EXISTS idx_products_offer ON products(is_offer);
+CREATE INDEX IF NOT EXISTS idx_products_featured ON products(is_featured);
+CREATE INDEX IF NOT EXISTS idx_products_new ON products(is_new);
 CREATE INDEX IF NOT EXISTS idx_products_price ON products(price);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_orders_created ON orders(created_at DESC);
