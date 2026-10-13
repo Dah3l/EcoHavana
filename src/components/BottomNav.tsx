@@ -1,7 +1,8 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, Grid3X3, Tag, ShoppingCart, Phone } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { useEffect, useState, useRef, useLayoutEffect, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import ThemeToggle from './ThemeToggle';
 
 const navItems = [
   { path: '/', label: 'Inicio', icon: Home },
@@ -25,18 +26,16 @@ export default function BottomNav() {
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const navRef = useRef<HTMLDivElement>(null);
 
-  // Esperar a que la animación del navbar termine antes de calcular el indicador
   useEffect(() => {
     const timer = setTimeout(() => {
       setAnimationComplete(true);
-    }, 600); // Duración de la animación nav-fade-in (0.6s)
+    }, 600);
     
     return () => clearTimeout(timer);
   }, []);
 
-  // Calcular posición del indicador deslizante
   const updateIndicator = useCallback(() => {
-    if (!animationComplete) return; // No calcular hasta que termine la animación
+    if (!animationComplete) return;
     
     const activeIndex = navItems.findIndex(
       (item) =>
@@ -55,14 +54,12 @@ export default function BottomNav() {
     }
   }, [location.pathname, animationComplete]);
 
-  // Calcular el indicador DESPUÉS de que la animación termine y cuando cambie la ruta
   useEffect(() => {
     if (animationComplete) {
       updateIndicator();
     }
   }, [animationComplete, updateIndicator]);
 
-  // Recalcular en resize (sin dependencias problemáticas)
   useEffect(() => {
     if (!animationComplete) return;
     
@@ -99,12 +96,11 @@ export default function BottomNav() {
     <nav className="fixed bottom-6 left-0 right-0 z-50 flex justify-center px-4 nav-fade-in">
       <div
         ref={navRef}
-        className="relative bg-white/90 backdrop-blur-lg rounded-full shadow-lg shadow-black/10 px-3 py-3 flex items-center gap-2 overflow-hidden"
+        className="relative bg-white/90 dark:bg-[#151B24]/90 backdrop-blur-lg rounded-full shadow-lg shadow-black/10 dark:shadow-black/30 px-3 py-3 flex items-center gap-2 overflow-hidden transition-colors duration-300"
       >
-        {/* Indicador deslizante (pill verde que se mueve al ítem activo) */}
         {indicator.ready && (
           <div
-            className="absolute top-3 h-10 rounded-full bg-[#16A34A] shadow-md shadow-[#16A34A]/30 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] pointer-events-none"
+            className="absolute top-3 h-10 rounded-full bg-[#16A34A] dark:bg-[#22C55E] shadow-md shadow-[#16A34A]/30 dark:shadow-[#22C55E]/30 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] pointer-events-none"
             style={{
               left: `${indicator.left}px`,
               width: `${indicator.width}px`,
@@ -125,7 +121,9 @@ export default function BottomNav() {
               ref={(el) => { itemRefs.current[index] = el; }}
               onClick={() => handleNavigate(item.path, index)}
               className={`nav-icon-btn relative z-10 flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${
-                isActive ? 'text-white' : 'text-gray-400 hover:text-gray-600'
+                isActive 
+                  ? 'text-white' 
+                  : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
               } ${isPressed ? 'nav-icon-press' : ''}`}
               aria-label={item.label}
             >
@@ -141,8 +139,8 @@ export default function BottomNav() {
                 <span
                   className={`absolute -top-0.5 -right-0.5 min-w-[18px] min-h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center transition-all duration-300 ${
                     isActive
-                      ? 'bg-white text-[#16A34A] badge-pop'
-                      : 'bg-[#16A34A] text-white'
+                      ? 'bg-white text-[#16A34A] dark:text-[#22C55E] badge-pop'
+                      : 'bg-[#16A34A] dark:bg-[#22C55E] text-white'
                   }`}
                 >
                   {totalItems}
@@ -151,6 +149,10 @@ export default function BottomNav() {
             </button>
           );
         })}
+
+        {/* Theme Toggle */}
+        <div className="w-px h-6 bg-slate-200 dark:bg-white/10 mx-1" />
+        <ThemeToggle />
       </div>
     </nav>
   );
