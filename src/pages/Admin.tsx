@@ -238,7 +238,7 @@ export default function Admin() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#16A34A]"
-                placeholder="admin@energicuba.com"
+                placeholder="admin@ecohavana.com"
               />
             </div>
             <div>

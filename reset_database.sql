@@ -1,5 +1,5 @@
 -- =============================================
--- EnergíaCuba - Reset Database
+-- EcoHavana - Reset Database
 -- ⚠️ ADVERTENCIA: Este script elimina TODOS los datos
 -- Úsalo solo si quieres empezar desde cero
 -- =============================================

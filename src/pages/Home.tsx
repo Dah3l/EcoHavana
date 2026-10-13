@@ -32,7 +32,7 @@ export default function Home() {
         <div className="relative max-w-6xl mx-auto px-4 py-16 md:py-24">
           <div className="flex items-center gap-2 mb-4">
             <Zap className="text-[#16A34A]" size={24} />
-            <span className="text-[#16A34A] font-medium text-sm uppercase tracking-wider">EnergíaCuba</span>
+            <span className="text-[#16A34A] font-medium text-sm uppercase tracking-wider">EcoHavana</span>
           </div>
           <h1 className="text-4xl md:text-6xl font-bold mb-4 leading-tight">
             Energía para tu hogar,<br />

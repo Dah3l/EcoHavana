@@ -1,5 +1,5 @@
 -- =============================================
--- EnergíaCuba - Seed SQL (Safe Version)
+-- EcoHavana - Seed SQL (Safe Version)
 -- Datos iniciales de productos
 -- Este script es seguro para ejecutar múltiples veces
 -- =============================================

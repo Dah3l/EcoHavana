@@ -8,7 +8,7 @@ export default function Cart() {
   const { items, removeFromCart, updateQuantity, clearCart, totalPrice } = useCart();
 
   const generateWhatsAppMessage = () => {
-    let msg = '🛒 *Nuevo Pedido - EnergíaCuba*\n\n';
+    let msg = '🛒 *Nuevo Pedido - EcoHavana*\n\n';
     items.forEach((item, i) => {
       msg += `${i + 1}. *${item.product.name}*\n`;
       msg += `   Cantidad: ${item.quantity}\n`;
