@@ -3,6 +3,7 @@ import { CartProvider } from './context/CartContext';
 import { ProductProvider } from './context/ProductContext';
 import BottomNav from './components/BottomNav';
 import ScrollToTop from './components/ScrollToTop';
+import ProductLoader from './components/ProductLoader';
 import Home from './pages/Home';
 import Catalog from './pages/Catalog';
 import ProductDetail from './pages/ProductDetail';
@@ -39,7 +40,9 @@ export default function App() {
     <BrowserRouter>
       <ProductProvider>
         <CartProvider>
-          <AppLayout />
+          <ProductLoader>
+            <AppLayout />
+          </ProductLoader>
         </CartProvider>
       </ProductProvider>
     </BrowserRouter>

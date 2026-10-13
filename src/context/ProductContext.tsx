@@ -126,52 +126,89 @@ export function ProductProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loadProducts = async () => {
-    setLoading(true);
     setError(null);
+    
+    // ESTRATEGIA: Stale-while-revalidate
+    // 1. Primero cargar desde localStorage (instantáneo, síncrono)
+    const localProducts = loadFromLocalStorage();
+    
+    if (localProducts && localProducts.length > 0) {
+      console.log('📦 Mostrando productos desde localStorage (cache)');
+      setProducts(localProducts);
+      setLoading(false); // Mostrar inmediatamente
+    } else {
+      // Si no hay cache, usar productos iniciales
+      console.log('📋 Usando productos iniciales (sin cache)');
+      setProducts(initialProducts);
+      setLoading(false);
+    }
 
-    try {
-      // Intentar cargar desde Supabase primero
-      if (isSupabaseConfigured()) {
+    // 2. Luego cargar desde Supabase (asíncrono, en background)
+    if (isSupabaseConfigured()) {
+      try {
+        console.log('🌐 Actualizando desde Supabase...');
         const supabaseProducts = await loadFromSupabase();
         
         if (supabaseProducts.length > 0) {
+          console.log('✅ Productos actualizados desde Supabase:', supabaseProducts.length);
           setProducts(supabaseProducts);
-          saveToLocalStorage(supabaseProducts); // Cache en localStorage
-          setLoading(false);
-          return;
+          saveToLocalStorage(supabaseProducts); // Actualizar cache
+        }
+      } catch (err: any) {
+        console.error('❌ Error actualizando desde Supabase:', err);
+        // No mostrar error si ya tenemos datos del cache
+        if (!localProducts || localProducts.length === 0) {
+          setError(err.message || 'Error cargando productos desde Supabase');
         }
       }
-
-      // Fallback a localStorage
-      const localProducts = loadFromLocalStorage();
-      if (localProducts && localProducts.length > 0) {
-        setProducts(localProducts);
-        setLoading(false);
-        return;
-      }
-
-      // Fallback a productos iniciales
-      console.log('📋 Usando productos iniciales');
-      setProducts(initialProducts);
-      saveToLocalStorage(initialProducts);
-    } catch (err: any) {
-      console.error('❌ Error cargando productos:', err);
-      setError(err.message || 'Error cargando productos');
-      
-      // Último fallback
-      const localProducts = loadFromLocalStorage();
-      if (localProducts) {
-        setProducts(localProducts);
-      } else {
-        setProducts(initialProducts);
-      }
-    } finally {
-      setLoading(false);
     }
   };
 
   const refreshProducts = async () => {
-    await loadProducts();
+    setLoading(true);
+    setError(null);
+    
+    try {
+      if (isSupabaseConfigured()) {
+        console.log('🔄 Recargando productos desde Supabase...');
+        const supabaseProducts = await loadFromSupabase();
+        
+        if (supabaseProducts.length > 0) {
+          setProducts(supabaseProducts);
+          saveToLocalStorage(supabaseProducts);
+          console.log('✅ Productos recargados:', supabaseProducts.length);
+        } else {
+          // Si Supabase está vacío, usar localStorage o iniciales
+          const localProducts = loadFromLocalStorage();
+          if (localProducts && localProducts.length > 0) {
+            setProducts(localProducts);
+          } else {
+            setProducts(initialProducts);
+            saveToLocalStorage(initialProducts);
+          }
+        }
+      } else {
+        // Sin Supabase, usar localStorage o iniciales
+        const localProducts = loadFromLocalStorage();
+        if (localProducts && localProducts.length > 0) {
+          setProducts(localProducts);
+        } else {
+          setProducts(initialProducts);
+          saveToLocalStorage(initialProducts);
+        }
+      }
+    } catch (err: any) {
+      console.error('❌ Error recargando productos:', err);
+      setError(err.message || 'Error recargando productos');
+      
+      // Fallback a localStorage
+      const localProducts = loadFromLocalStorage();
+      if (localProducts) {
+        setProducts(localProducts);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const addProduct = async (product: Product) => {
