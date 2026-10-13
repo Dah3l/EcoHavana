@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
-import { categories, categoryNames } from '../data/products';
+import { categoryNames } from '../data/products';
 import { useProducts } from '../context/ProductContext';
+import { useCategories } from '../context/CategoryContext';
 import { useCart } from '../context/CartContext';
 import { resolveImageUrl } from '../lib/storage';
 import { ProductGridSkeleton } from '../components/Skeletons';
@@ -12,6 +13,7 @@ export default function Catalog() {
   const [searchParams] = useSearchParams();
   const { addToCart } = useCart();
   const { products, loading } = useProducts();
+  const { categories } = useCategories();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState(searchParams.get('cat') || 'all');
   const [showOffersOnly, setShowOffersOnly] = useState(false);
@@ -27,6 +29,15 @@ export default function Catalog() {
       return true;
     });
   }, [products, category, showOffersOnly, search]);
+
+  // Crear mapa de categorías para mostrar nombres
+  const categoryNameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    categories.forEach(cat => {
+      map[cat.slug] = cat.name;
+    });
+    return map;
+  }, [categories]);
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 animate-fade-in">
@@ -77,12 +88,22 @@ export default function Catalog() {
           </div>
           {/* Category pills */}
           <div className="flex flex-wrap gap-2 mb-3">
+            <button
+              onClick={() => setCategory('all')}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                category === 'all'
+                  ? 'bg-[#16A34A] text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              ⚡ Todos
+            </button>
             {categories.map((cat) => (
               <button
                 key={cat.id}
-                onClick={() => setCategory(cat.id)}
+                onClick={() => setCategory(cat.slug)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                  category === cat.id
+                  category === cat.slug
                     ? 'bg-[#16A34A] text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
@@ -106,12 +127,22 @@ export default function Catalog() {
 
       {/* Category quick filter */}
       <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-hide">
+        <button
+          onClick={() => setCategory('all')}
+          className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+            category === 'all'
+              ? 'bg-[#16A34A] text-white shadow-sm'
+              : 'bg-white text-gray-600 border border-gray-200 hover:border-[#16A34A]/30'
+          }`}
+        >
+          ⚡ Todos
+        </button>
         {categories.map((cat) => (
           <button
             key={cat.id}
-            onClick={() => setCategory(cat.id)}
+            onClick={() => setCategory(cat.slug)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
-              category === cat.id
+              category === cat.slug
                 ? 'bg-[#16A34A] text-white shadow-sm'
                 : 'bg-white text-gray-600 border border-gray-200 hover:border-[#16A34A]/30'
             }`}
@@ -153,7 +184,7 @@ export default function Catalog() {
                   </span>
                 )}
                 <span className="absolute top-2 right-2 bg-white/90 backdrop-blur text-[10px] font-medium px-2 py-0.5 rounded-full text-gray-600">
-                  {categoryNames[product.category]}
+                  {categoryNameMap[product.category] || product.category}
                 </span>
               </div>
               <div className="p-4">
