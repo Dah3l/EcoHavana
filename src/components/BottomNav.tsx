@@ -55,19 +55,38 @@ export default function BottomNav() {
     }
   }, [location.pathname, animationComplete]);
 
-  // Calcular el indicador DESPUÉS de que la animación termine
+  // Calcular el indicador DESPUÉS de que la animación termine y cuando cambie la ruta
   useEffect(() => {
     if (animationComplete) {
       updateIndicator();
     }
   }, [animationComplete, updateIndicator]);
 
-  // Recalcular en resize
+  // Recalcular en resize (sin dependencias problemáticas)
   useEffect(() => {
-    const handleResize = () => updateIndicator();
+    if (!animationComplete) return;
+    
+    const handleResize = () => {
+      const activeIndex = navItems.findIndex(
+        (item) =>
+          location.pathname === item.path ||
+          (item.path === '/catalogo' && location.pathname.startsWith('/producto/'))
+      );
+
+      if (activeIndex >= 0 && itemRefs.current[activeIndex] && navRef.current) {
+        const navRect = navRef.current.getBoundingClientRect();
+        const itemRect = itemRefs.current[activeIndex]!.getBoundingClientRect();
+        setIndicator({
+          left: itemRect.left - navRect.left,
+          width: itemRect.width,
+          ready: true,
+        });
+      }
+    };
+    
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [updateIndicator]);
+  }, [animationComplete, location.pathname]);
 
   const handleNavigate = (path: string, index: number) => {
     setPressedIndex(index);

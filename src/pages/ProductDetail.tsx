@@ -1,18 +1,28 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ShoppingCart, Shield, Truck, Check } from 'lucide-react';
-import { categoryNames } from '../data/products';
 import { useProducts } from '../context/ProductContext';
+import { useCategories } from '../context/CategoryContext';
 import { useCart } from '../context/CartContext';
 import { resolveImageUrl } from '../lib/storage';
 import { ProductDetailSkeleton } from '../components/Skeletons';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const { getProduct, loading } = useProducts();
+  const { categories } = useCategories();
   const [added, setAdded] = useState(false);
+
+  // Crear mapa de categorías para mostrar nombres
+  const categoryNameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    categories.forEach(cat => {
+      map[cat.slug] = cat.name;
+    });
+    return map;
+  }, [categories]);
 
   const product = getProduct(id || '');
 
@@ -72,7 +82,7 @@ export default function ProductDetail() {
         {/* Info */}
         <div>
           <span className="text-xs font-medium text-[#16A34A] uppercase tracking-wider">
-            {categoryNames[product.category]}
+            {categoryNameMap[product.category] || product.category}
           </span>
           <h1 className="text-2xl md:text-3xl font-bold text-[#111827] mt-1 mb-2">{product.name}</h1>
           <p className="text-3xl font-bold text-[#16A34A] mb-4">${product.price} <span className="text-base font-normal text-gray-400">USD</span></p>

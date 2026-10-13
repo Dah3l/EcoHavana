@@ -1,12 +1,15 @@
 import { useState, useRef, DragEvent, ChangeEvent, useEffect } from 'react';
-import { Lock, Plus, Edit, Trash2, Eye, LogOut, Package, Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
-import { categories, categoryNames, Product } from '../data/products';
+import { Lock, Plus, Edit, Trash2, Eye, LogOut, Package, Upload, X, Image as ImageIcon, Loader2, FolderOpen } from 'lucide-react';
+import { categoryNames, Product } from '../data/products';
 import { useProducts } from '../context/ProductContext';
+import { useCategories } from '../context/CategoryContext';
 import { uploadImage, resolveImageUrl, fileToDataUrl } from '../lib/storage';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import CategoryManager from '../components/CategoryManager';
 
 export default function Admin() {
   const { products, updateProduct, addProduct, deleteProduct, loading } = useProducts();
+  const { categories } = useCategories();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,6 +19,7 @@ export default function Admin() {
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'products' | 'categories'>('products');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Verificar sesión al montar
@@ -273,15 +277,17 @@ export default function Admin() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-[#111827]">Panel Admin</h1>
-          <p className="text-gray-500 text-sm">Gestión de productos</p>
+          <p className="text-gray-500 text-sm">Gestión de productos y categorías</p>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={() => openForm(null)}
-            className="flex items-center gap-1 bg-[#16A34A] text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-[#15803D] transition-colors"
-          >
-            <Plus size={16} /> Nuevo
-          </button>
+          {activeTab === 'products' && (
+            <button
+              onClick={() => openForm(null)}
+              className="flex items-center gap-1 bg-[#16A34A] text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-[#15803D] transition-colors"
+            >
+              <Plus size={16} /> Nuevo
+            </button>
+          )}
           <button
             onClick={handleLogout}
             className="flex items-center gap-1 bg-gray-100 text-gray-600 px-3 py-2 rounded-xl text-sm hover:bg-gray-200 transition-colors"
@@ -291,29 +297,60 @@ export default function Admin() {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <p className="text-2xl font-bold text-[#111827]">{products.length}</p>
-          <p className="text-xs text-gray-500">Total</p>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-[#16A34A]">
-          <p className="text-2xl font-bold text-[#16A34A]">{products.filter(p => p.featured).length}</p>
-          <p className="text-xs text-gray-500">⭐ Destacados</p>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-red-500">
-          <p className="text-2xl font-bold text-red-600">{products.filter(p => p.offer).length}</p>
-          <p className="text-xs text-gray-500">🔥 Ofertas</p>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-blue-500">
-          <p className="text-2xl font-bold text-blue-600">{products.filter(p => p.isNew).length}</p>
-          <p className="text-xs text-gray-500">✨ Nuevos</p>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-gray-400">
-          <p className="text-2xl font-bold text-gray-600">{products.filter(p => p.visible).length}</p>
-          <p className="text-xs text-gray-500">✓ Visibles</p>
-        </div>
+      {/* Tabs */}
+      <div className="flex gap-2 mb-6">
+        <button
+          onClick={() => setActiveTab('products')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+            activeTab === 'products'
+              ? 'bg-[#16A34A] text-white'
+              : 'bg-white text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          <Package size={16} />
+          Productos
+        </button>
+        <button
+          onClick={() => setActiveTab('categories')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+            activeTab === 'categories'
+              ? 'bg-[#16A34A] text-white'
+              : 'bg-white text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          <FolderOpen size={16} />
+          Categorías
+        </button>
       </div>
+
+      {/* Contenido según pestaña activa */}
+      {activeTab === 'products' && (
+        <>
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+            <div className="bg-white rounded-xl p-4 shadow-sm">
+              <p className="text-2xl font-bold text-[#111827]">{products.length}</p>
+              <p className="text-xs text-gray-500">Total</p>
+            </div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-[#16A34A]">
+              <p className="text-2xl font-bold text-[#16A34A]">{products.filter(p => p.featured).length}</p>
+              <p className="text-xs text-gray-500">⭐ Destacados</p>
+            </div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-red-500">
+              <p className="text-2xl font-bold text-red-600">{products.filter(p => p.offer).length}</p>
+              <p className="text-xs text-gray-500">🔥 Ofertas</p>
+            </div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-blue-500">
+              <p className="text-2xl font-bold text-blue-600">{products.filter(p => p.isNew).length}</p>
+              <p className="text-xs text-gray-500">✨ Nuevos</p>
+            </div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-gray-400">
+              <p className="text-2xl font-bold text-gray-600">{products.filter(p => p.visible).length}</p>
+              <p className="text-xs text-gray-500">✓ Visibles</p>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Product form modal */}
       {showForm && (
@@ -338,9 +375,9 @@ export default function Admin() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700">Categoría</label>
-                  <select name="category" className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" defaultValue={editingProduct?.category || 'estaciones'}>
-                    {categories.filter(c => c.id !== 'all').map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
+                  <select name="category" className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" defaultValue={editingProduct?.category || categories[0]?.slug || 'estaciones'}>
+                    {categories.map(c => (
+                      <option key={c.id} value={c.slug}>{c.icon} {c.name}</option>
                     ))}
                   </select>
                 </div>
@@ -557,8 +594,11 @@ export default function Admin() {
         </div>
       )}
 
-      {/* Products table */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+      {/* Contenido según pestaña activa */}
+      {activeTab === 'products' ? (
+        <>
+          {/* Products table */}
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-100">
@@ -586,7 +626,7 @@ export default function Admin() {
                   </td>
                   <td className="px-4 py-3">
                     <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                      {categoryNames[product.category]}
+                      {categories.find(c => c.slug === product.category)?.name || product.category}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm font-medium text-[#111827]">${product.price}</td>
@@ -645,6 +685,10 @@ export default function Admin() {
           </div>
         </div>
       </div>
+        </>
+      ) : (
+        <CategoryManager />
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Zap, Shield, Truck, ArrowRight, Battery, Sun, Settings, Package } from 'lucide-react';
-import { categories } from '../data/products';
 import { useProducts } from '../context/ProductContext';
+import { useCategories } from '../context/CategoryContext';
 import { useCart } from '../context/CartContext';
 import { resolveImageUrl } from '../lib/storage';
 import { FeaturedGridSkeleton, CategoryCardSkeleton } from '../components/Skeletons';
@@ -10,6 +10,7 @@ export default function Home() {
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const { products, loading } = useProducts();
+  const { categories } = useCategories();
   // Productos destacados: prioriza los marcados como featured, luego isNew y offer
   const featured = products
     .filter(p => p.featured || p.isNew || p.offer)
@@ -116,26 +117,26 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {categories.filter(c => c.id !== 'all').map((cat) => {
+            {categories.map((cat) => {
               const icons: Record<string, any> = {
                 estaciones: Battery,
                 plantas: Settings,
                 paneles: Sun,
                 combos: Package,
               };
-              const Icon = icons[cat.id] || Zap;
+              const Icon = icons[cat.slug] || Zap;
               return (
                 <button
                   key={cat.id}
-                  onClick={() => navigate(`/catalogo?cat=${cat.id}`)}
+                  onClick={() => navigate(`/catalogo?cat=${cat.slug}`)}
                   className="bg-white rounded-2xl p-5 text-left hover:shadow-md transition-all group border border-transparent hover:border-[#16A34A]/20"
                 >
-                  <div className="w-10 h-10 bg-[#16A34A]/10 rounded-xl flex items-center justify-center mb-3 group-hover:bg-[#16A34A]/20 transition-colors">
-                    <Icon className="text-[#16A34A]" size={20} />
+                  <div className="w-10 h-10 bg-[#16A34A]/10 rounded-xl flex items-center justify-center mb-3 group-hover:bg-[#16A34A]/20 transition-colors text-xl">
+                    {cat.icon}
                   </div>
                   <h3 className="font-semibold text-[#111827] text-sm">{cat.name}</h3>
                   <p className="text-xs text-gray-400 mt-1">
-                    {products.filter(p => p.category === cat.id).length} productos
+                    {products.filter(p => p.category === cat.slug).length} productos
                   </p>
                 </button>
               );

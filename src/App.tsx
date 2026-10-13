@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
 import { ProductProvider } from './context/ProductContext';
+import { CategoryProvider } from './context/CategoryContext';
 import BottomNav from './components/BottomNav';
 import ScrollToTop from './components/ScrollToTop';
 import ProductLoader from './components/ProductLoader';
@@ -38,13 +39,15 @@ function AppLayout() {
 export default function App() {
   return (
     <BrowserRouter>
-      <ProductProvider>
-        <CartProvider>
-          <ProductLoader>
-            <AppLayout />
-          </ProductLoader>
-        </CartProvider>
-      </ProductProvider>
+      <CategoryProvider>
+        <ProductProvider>
+          <CartProvider>
+            <ProductLoader>
+              <AppLayout />
+            </ProductLoader>
+          </CartProvider>
+        </ProductProvider>
+      </CategoryProvider>
     </BrowserRouter>
   );
 }
