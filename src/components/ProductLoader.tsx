@@ -1,5 +1,4 @@
 import { useProducts } from '../context/ProductContext';
-import { useLocation } from 'react-router-dom';
 import { ReactNode } from 'react';
 
 interface ProductLoaderProps {
@@ -7,24 +6,10 @@ interface ProductLoaderProps {
 }
 
 export default function ProductLoader({ children }: ProductLoaderProps) {
-  const { loading, error, refreshProducts } = useProducts();
-  const location = useLocation();
-  
-  // No mostrar loading en el admin
-  const isAdminRoute = location.pathname === '/admin';
+  const { error, refreshProducts } = useProducts();
 
-  if (loading && !isAdminRoute) {
-    return (
-      <div className="min-h-screen bg-[#F3F4F6] flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#16A34A]"></div>
-          <p className="mt-4 text-gray-600 font-medium">Cargando productos...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error && !isAdminRoute) {
+  // Solo mostrar error si hay un error crítico
+  if (error) {
     return (
       <div className="min-h-screen bg-[#F3F4F6] flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl p-8 shadow-lg max-w-md w-full text-center">

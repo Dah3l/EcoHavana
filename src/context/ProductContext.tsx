@@ -126,41 +126,53 @@ export function ProductProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loadProducts = async () => {
+    setLoading(true);
     setError(null);
-    
-    // ESTRATEGIA: Stale-while-revalidate
-    // 1. Primero cargar desde localStorage (instantáneo, síncrono)
-    const localProducts = loadFromLocalStorage();
-    
-    if (localProducts && localProducts.length > 0) {
-      console.log('📦 Mostrando productos desde localStorage (cache)');
-      setProducts(localProducts);
-      setLoading(false); // Mostrar inmediatamente
-    } else {
-      // Si no hay cache, usar productos iniciales
-      console.log('📋 Usando productos iniciales (sin cache)');
-      setProducts(initialProducts);
-      setLoading(false);
-    }
 
-    // 2. Luego cargar desde Supabase (asíncrono, en background)
-    if (isSupabaseConfigured()) {
-      try {
-        console.log('🌐 Actualizando desde Supabase...');
+    try {
+      // ESTRATEGIA: Cargar primero desde Supabase
+      if (isSupabaseConfigured()) {
+        console.log('🌐 Cargando productos desde Supabase...');
         const supabaseProducts = await loadFromSupabase();
         
         if (supabaseProducts.length > 0) {
-          console.log('✅ Productos actualizados desde Supabase:', supabaseProducts.length);
+          console.log('✅ Productos cargados desde Supabase:', supabaseProducts.length);
           setProducts(supabaseProducts);
-          saveToLocalStorage(supabaseProducts); // Actualizar cache
-        }
-      } catch (err: any) {
-        console.error('❌ Error actualizando desde Supabase:', err);
-        // No mostrar error si ya tenemos datos del cache
-        if (!localProducts || localProducts.length === 0) {
-          setError(err.message || 'Error cargando productos desde Supabase');
+          saveToLocalStorage(supabaseProducts); // Guardar en cache
+          setLoading(false);
+          return;
         }
       }
+
+      // Fallback: Si Supabase falla o está vacío, usar localStorage
+      console.log('⚠️ Supabase vacío o error, usando localStorage...');
+      const localProducts = loadFromLocalStorage();
+      
+      if (localProducts && localProducts.length > 0) {
+        console.log('📦 Productos cargados desde localStorage:', localProducts.length);
+        setProducts(localProducts);
+        setLoading(false);
+        return;
+      }
+
+      // Último fallback: productos iniciales
+      console.log('📋 Usando productos iniciales');
+      setProducts(initialProducts);
+      saveToLocalStorage(initialProducts);
+      setLoading(false);
+      
+    } catch (err: any) {
+      console.error('❌ Error cargando productos:', err);
+      setError(err.message || 'Error cargando productos');
+      
+      // Fallback a localStorage
+      const localProducts = loadFromLocalStorage();
+      if (localProducts && localProducts.length > 0) {
+        setProducts(localProducts);
+      } else {
+        setProducts(initialProducts);
+      }
+      setLoading(false);
     }
   };
 

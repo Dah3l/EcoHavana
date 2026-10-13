@@ -4,11 +4,12 @@ import { categories } from '../data/products';
 import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
 import { resolveImageUrl } from '../lib/storage';
+import { FeaturedGridSkeleton, CategoryCardSkeleton } from '../components/Skeletons';
 
 export default function Home() {
   const navigate = useNavigate();
   const { addToCart } = useCart();
-  const { products } = useProducts();
+  const { products, loading } = useProducts();
   // Productos destacados: prioriza los marcados como featured, luego isNew y offer
   const featured = products
     .filter(p => p.featured || p.isNew || p.offer)
@@ -107,32 +108,40 @@ export default function Home() {
       {/* Categories */}
       <section className="max-w-6xl mx-auto px-4 pb-8">
         <h2 className="text-2xl font-bold text-[#111827] mb-6">Categorías</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {categories.filter(c => c.id !== 'all').map((cat) => {
-            const icons: Record<string, any> = {
-              estaciones: Battery,
-              plantas: Settings,
-              paneles: Sun,
-              combos: Package,
-            };
-            const Icon = icons[cat.id] || Zap;
-            return (
-              <button
-                key={cat.id}
-                onClick={() => navigate(`/catalogo?cat=${cat.id}`)}
-                className="bg-white rounded-2xl p-5 text-left hover:shadow-md transition-all group border border-transparent hover:border-[#16A34A]/20"
-              >
-                <div className="w-10 h-10 bg-[#16A34A]/10 rounded-xl flex items-center justify-center mb-3 group-hover:bg-[#16A34A]/20 transition-colors">
-                  <Icon className="text-[#16A34A]" size={20} />
-                </div>
-                <h3 className="font-semibold text-[#111827] text-sm">{cat.name}</h3>
-                <p className="text-xs text-gray-400 mt-1">
-                  {products.filter(p => p.category === cat.id).length} productos
-                </p>
-              </button>
-            );
-          })}
-        </div>
+        {loading ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <CategoryCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {categories.filter(c => c.id !== 'all').map((cat) => {
+              const icons: Record<string, any> = {
+                estaciones: Battery,
+                plantas: Settings,
+                paneles: Sun,
+                combos: Package,
+              };
+              const Icon = icons[cat.id] || Zap;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => navigate(`/catalogo?cat=${cat.id}`)}
+                  className="bg-white rounded-2xl p-5 text-left hover:shadow-md transition-all group border border-transparent hover:border-[#16A34A]/20"
+                >
+                  <div className="w-10 h-10 bg-[#16A34A]/10 rounded-xl flex items-center justify-center mb-3 group-hover:bg-[#16A34A]/20 transition-colors">
+                    <Icon className="text-[#16A34A]" size={20} />
+                  </div>
+                  <h3 className="font-semibold text-[#111827] text-sm">{cat.name}</h3>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {products.filter(p => p.category === cat.id).length} productos
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {/* Featured */}
@@ -143,47 +152,51 @@ export default function Home() {
             Ver todos <ArrowRight size={14} />
           </button>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {featured.map((product) => (
-            <div key={product.id} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all group">
-              <div className="relative h-40 bg-gray-100 overflow-hidden">
-                <img
-                  src={resolveImageUrl(product.images[0])}
-                  alt={product.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-                {product.offer && (
-                  <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                    OFERTA
-                  </span>
-                )}
-                {product.isNew && (
-                  <span className="absolute top-2 left-2 bg-[#16A34A] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                    NUEVO
-                  </span>
-                )}
-              </div>
-              <div className="p-4">
-                <h3 className="font-semibold text-sm text-[#111827] mb-1 line-clamp-2">{product.name}</h3>
-                <p className="text-[#16A34A] font-bold text-lg">${product.price} USD</p>
-                <div className="flex gap-2 mt-3">
-                  <button
-                    onClick={() => navigate(`/producto/${product.id}`)}
-                    className="flex-1 text-xs bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition-colors"
-                  >
-                    Ver más
-                  </button>
-                  <button
-                    onClick={() => addToCart(product)}
-                    className="flex-1 text-xs bg-[#16A34A] text-white py-2 rounded-lg hover:bg-[#15803D] transition-colors"
-                  >
-                    Añadir
-                  </button>
+        {loading ? (
+          <FeaturedGridSkeleton />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {featured.map((product) => (
+              <div key={product.id} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all group">
+                <div className="relative h-40 bg-gray-100 overflow-hidden">
+                  <img
+                    src={resolveImageUrl(product.images[0])}
+                    alt={product.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  {product.offer && (
+                    <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      OFERTA
+                    </span>
+                  )}
+                  {product.isNew && (
+                    <span className="absolute top-2 left-2 bg-[#16A34A] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      NUEVO
+                    </span>
+                  )}
+                </div>
+                <div className="p-4">
+                  <h3 className="font-semibold text-sm text-[#111827] mb-1 line-clamp-2">{product.name}</h3>
+                  <p className="text-[#16A34A] font-bold text-lg">${product.price} USD</p>
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={() => navigate(`/producto/${product.id}`)}
+                      className="flex-1 text-xs bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      Ver más
+                    </button>
+                    <button
+                      onClick={() => addToCart(product)}
+                      className="flex-1 text-xs bg-[#16A34A] text-white py-2 rounded-lg hover:bg-[#15803D] transition-colors"
+                    >
+                      Añadir
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

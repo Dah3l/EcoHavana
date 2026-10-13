@@ -5,12 +5,13 @@ import { categories, categoryNames } from '../data/products';
 import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
 import { resolveImageUrl } from '../lib/storage';
+import { ProductGridSkeleton } from '../components/Skeletons';
 
 export default function Catalog() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { addToCart } = useCart();
-  const { products } = useProducts();
+  const { products, loading } = useProducts();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState(searchParams.get('cat') || 'all');
   const [showOffersOnly, setShowOffersOnly] = useState(false);
@@ -25,7 +26,7 @@ export default function Catalog() {
           !p.description.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
-  }, [category, showOffersOnly, search]);
+  }, [products, category, showOffersOnly, search]);
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 animate-fade-in">
@@ -121,7 +122,9 @@ export default function Catalog() {
       </div>
 
       {/* Products grid */}
-      {filteredProducts.length === 0 ? (
+      {loading ? (
+        <ProductGridSkeleton count={9} />
+      ) : filteredProducts.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-400 text-lg">No se encontraron productos</p>
           <p className="text-gray-400 text-sm">Intenta con otros filtros</p>
