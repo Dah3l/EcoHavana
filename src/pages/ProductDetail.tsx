@@ -4,16 +4,21 @@ import { categoryNames } from '../data/products';
 import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
 import { resolveImageUrl } from '../lib/storage';
+import { ProductDetailSkeleton } from '../components/Skeletons';
 import { useState } from 'react';
 
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
-  const { getProduct } = useProducts();
+  const { getProduct, loading } = useProducts();
   const [added, setAdded] = useState(false);
 
   const product = getProduct(id || '');
+
+  if (loading) {
+    return <ProductDetailSkeleton />;
+  }
 
   if (!product) {
     return (

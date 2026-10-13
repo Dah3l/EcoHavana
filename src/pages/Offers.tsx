@@ -3,11 +3,12 @@ import { Tag } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
 import { resolveImageUrl } from '../lib/storage';
+import { ProductGridSkeleton } from '../components/Skeletons';
 
 export default function Offers() {
   const navigate = useNavigate();
   const { addToCart } = useCart();
-  const { products } = useProducts();
+  const { products, loading } = useProducts();
   const offerProducts = products.filter(p => p.visible && (p.offer || p.price < 300));
 
   return (
@@ -26,7 +27,9 @@ export default function Offers() {
         <p className="text-white/80 text-sm">Aprovecha nuestros precios reducidos en productos seleccionados</p>
       </div>
 
-      {offerProducts.length === 0 ? (
+      {loading ? (
+        <ProductGridSkeleton count={6} />
+      ) : offerProducts.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-400">No hay ofertas disponibles en este momento</p>
         </div>
