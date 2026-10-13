@@ -6,6 +6,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import BottomNav from './components/BottomNav';
 import ScrollToTop from './components/ScrollToTop';
 import ProductLoader from './components/ProductLoader';
+import Onboarding from './components/Onboarding';
 import Home from './pages/Home';
 import Catalog from './pages/Catalog';
 import ProductDetail from './pages/ProductDetail';
@@ -21,6 +22,7 @@ function AppLayout() {
   return (
     <>
       <ScrollToTop />
+      <Onboarding />
       <div className={`min-h-screen bg-[#F3F4F6] dark:bg-[#0B0F14] transition-colors duration-300 ${hideNav ? '' : 'pb-24'}`}>
         <Routes>
           <Route path="/" element={<Home />} />
