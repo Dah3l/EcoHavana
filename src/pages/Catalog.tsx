@@ -1,13 +1,16 @@
 import { useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
-import { products, categories, categoryNames } from '../data/products';
+import { categories, categoryNames } from '../data/products';
+import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
+import { resolveImageUrl } from '../lib/storage';
 
 export default function Catalog() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { addToCart } = useCart();
+  const { products } = useProducts();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState(searchParams.get('cat') || 'all');
   const [showOffersOnly, setShowOffersOnly] = useState(false);
@@ -132,7 +135,7 @@ export default function Catalog() {
                 onClick={() => navigate(`/producto/${product.id}`)}
               >
                 <img
-                  src={product.images[0]}
+                  src={resolveImageUrl(product.images[0])}
                   alt={product.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />

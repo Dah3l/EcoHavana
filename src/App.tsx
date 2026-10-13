@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
+import { ProductProvider } from './context/ProductContext';
 import BottomNav from './components/BottomNav';
 import ScrollToTop from './components/ScrollToTop';
 import Home from './pages/Home';
@@ -36,9 +37,11 @@ function AppLayout() {
 export default function App() {
   return (
     <BrowserRouter>
-      <CartProvider>
-        <AppLayout />
-      </CartProvider>
+      <ProductProvider>
+        <CartProvider>
+          <AppLayout />
+        </CartProvider>
+      </ProductProvider>
     </BrowserRouter>
   );
 }

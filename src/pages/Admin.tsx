@@ -1,8 +1,11 @@
 import { useState, useRef, DragEvent, ChangeEvent } from 'react';
-import { Lock, Plus, Edit, Trash2, Eye, LogOut, Package, Upload, X, Image as ImageIcon } from 'lucide-react';
-import { products, categories, categoryNames, Product } from '../data/products';
+import { Lock, Plus, Edit, Trash2, Eye, LogOut, Package, Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { categories, categoryNames, Product } from '../data/products';
+import { useProducts } from '../context/ProductContext';
+import { uploadImage, resolveImageUrl, fileToDataUrl } from '../lib/storage';
 
 export default function Admin() {
+  const { products, updateProduct, addProduct, deleteProduct } = useProducts();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -10,6 +13,7 @@ export default function Admin() {
   const [showForm, setShowForm] = useState(false);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleLogin = (e: React.FormEvent) => {
@@ -30,21 +34,57 @@ export default function Admin() {
     setEditingProduct(null);
     setUploadedImages([]);
     setIsDragging(false);
+    setUploading(false);
   };
 
-  // Procesar archivos seleccionados
-  const processFiles = (files: FileList | null) => {
+  // Procesar archivos seleccionados y subirlos
+  const processFiles = async (files: FileList | null) => {
     if (!files) return;
     const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
     
-    imageFiles.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setUploadedImages(prev => [...prev, result]);
-      };
-      reader.readAsDataURL(file);
-    });
+    if (imageFiles.length === 0) return;
+    
+    setUploading(true);
+    
+    try {
+      // Mostrar previsualizaciones inmediatas (dataURL)
+      const previews: string[] = [];
+      for (const file of imageFiles) {
+        const preview = await fileToDataUrl(file);
+        previews.push(preview);
+      }
+      setUploadedImages(prev => [...prev, ...previews]);
+      
+      // Subir imágenes al storage (en background)
+      const uploadedUrls: string[] = [];
+      for (const file of imageFiles) {
+        try {
+          const url = await uploadImage(file);
+          uploadedUrls.push(url);
+        } catch (err) {
+          console.error('Error uploading file:', err);
+        }
+      }
+      
+      // Reemplazar previews con URLs reales
+      if (uploadedUrls.length > 0) {
+        setUploadedImages(prev => {
+          const newImages = [...prev];
+          // Reemplazar las últimas N imágenes (los previews) con las URLs subidas
+          const startIndex = newImages.length - previews.length;
+          for (let i = 0; i < uploadedUrls.length; i++) {
+            if (startIndex + i < newImages.length) {
+              newImages[startIndex + i] = uploadedUrls[i];
+            }
+          }
+          return newImages;
+        });
+      }
+    } catch (err) {
+      console.error('Error processing files:', err);
+    } finally {
+      setUploading(false);
+    }
   };
 
   // Click en el área de subida
@@ -100,6 +140,39 @@ export default function Admin() {
       newImages.unshift(moved);
       return newImages;
     });
+  };
+
+  // Guardar producto
+  const handleSaveProduct = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    
+    const productData = {
+      name: formData.get('name') as string,
+      description: formData.get('description') as string,
+      price: parseFloat(formData.get('price') as string) || 0,
+      category: formData.get('category') as Product['category'],
+      specs: (formData.get('specs') as string).split('\n').filter(s => s.trim()),
+      warranty: formData.get('warranty') as string,
+      transport: formData.get('transport') as string,
+      images: uploadedImages,
+      offer: formData.get('offer') === 'on',
+      isNew: formData.get('isNew') === 'on',
+      visible: formData.get('visible') === 'on',
+    };
+    
+    if (editingProduct) {
+      updateProduct(editingProduct.id, productData);
+    } else {
+      const newProduct: Product = {
+        id: `product-${Date.now()}`,
+        ...productData,
+      };
+      addProduct(newProduct);
+    }
+    
+    closeForm();
   };
 
   if (!isLoggedIn) {
@@ -200,23 +273,23 @@ export default function Admin() {
             <h2 className="text-lg font-bold text-[#111827] mb-4">
               {editingProduct ? 'Editar producto' : 'Nuevo producto'}
             </h2>
-            <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); closeForm(); }}>
+            <form className="space-y-3" onSubmit={handleSaveProduct}>
               <div>
                 <label className="text-sm font-medium text-gray-700">Nombre</label>
-                <input className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" defaultValue={editingProduct?.name || ''} />
+                <input name="name" className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" defaultValue={editingProduct?.name || ''} required />
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">Descripción</label>
-                <textarea className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" rows={3} defaultValue={editingProduct?.description || ''} />
+                <textarea name="description" className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" rows={3} defaultValue={editingProduct?.description || ''} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm font-medium text-gray-700">Precio USD</label>
-                  <input type="number" className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" defaultValue={editingProduct?.price || ''} />
+                  <input name="price" type="number" step="0.01" className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" defaultValue={editingProduct?.price || ''} required />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700">Categoría</label>
-                  <select className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" defaultValue={editingProduct?.category || 'estaciones'}>
+                  <select name="category" className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" defaultValue={editingProduct?.category || 'estaciones'}>
                     {categories.filter(c => c.id !== 'all').map(c => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
@@ -225,35 +298,35 @@ export default function Admin() {
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">Especificaciones (una por línea)</label>
-                <textarea className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" rows={3} defaultValue={editingProduct?.specs.join('\n') || ''} />
+                <textarea name="specs" className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" rows={3} defaultValue={editingProduct?.specs.join('\n') || ''} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm font-medium text-gray-700">Garantía</label>
-                  <input className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" defaultValue={editingProduct?.warranty || ''} />
+                  <input name="warranty" className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" defaultValue={editingProduct?.warranty || ''} />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700">Transporte</label>
-                  <input className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" defaultValue={editingProduct?.transport || ''} />
+                  <input name="transport" className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" defaultValue={editingProduct?.transport || ''} />
                 </div>
               </div>
               <div className="flex items-center gap-4">
                 <label className="flex items-center gap-2">
-                  <input type="checkbox" className="rounded" defaultChecked={editingProduct?.offer || false} />
+                  <input name="offer" type="checkbox" value="on" className="rounded" defaultChecked={editingProduct?.offer || false} />
                   <span className="text-sm">Oferta</span>
                 </label>
                 <label className="flex items-center gap-2">
-                  <input type="checkbox" className="rounded" defaultChecked={editingProduct?.isNew || false} />
+                  <input name="isNew" type="checkbox" value="on" className="rounded" defaultChecked={editingProduct?.isNew || false} />
                   <span className="text-sm">Nuevo</span>
                 </label>
                 <label className="flex items-center gap-2">
-                  <input type="checkbox" className="rounded" defaultChecked={editingProduct?.visible ?? true} />
+                  <input name="visible" type="checkbox" value="on" className="rounded" defaultChecked={editingProduct?.visible ?? true} />
                   <span className="text-sm">Visible</span>
                 </label>
               </div>
 
               {/* ============================================
-                  ZONA DE SUBIDA DE FOTOS (FUNCIONAL)
+                  ZONA DE SUBIDA DE FOTOS (FUNCIONAL CON STORAGE)
                   ============================================ */}
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-2 block">
@@ -280,18 +353,24 @@ export default function Admin() {
                   className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-200 ${
                     isDragging
                       ? 'border-[#16A34A] bg-[#16A34A]/5 scale-[1.02]'
+                      : uploading
+                      ? 'border-blue-300 bg-blue-50'
                       : 'border-gray-200 hover:border-[#16A34A]/50 hover:bg-gray-50'
                   }`}
                 >
                   <div className={`mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-2 transition-colors ${
-                    isDragging ? 'bg-[#16A34A]/20' : 'bg-gray-100'
+                    isDragging ? 'bg-[#16A34A]/20' : uploading ? 'bg-blue-100' : 'bg-gray-100'
                   }`}>
-                    <Upload className={`transition-colors ${isDragging ? 'text-[#16A34A]' : 'text-gray-400'}`} size={22} />
+                    {uploading ? (
+                      <Loader2 className="text-blue-500 animate-spin" size={22} />
+                    ) : (
+                      <Upload className={`transition-colors ${isDragging ? 'text-[#16A34A]' : 'text-gray-400'}`} size={22} />
+                    )}
                   </div>
                   <p className="text-sm text-gray-600 font-medium">
-                    {isDragging ? '¡Suelta las imágenes aquí!' : 'Haz clic o arrastra imágenes'}
+                    {uploading ? 'Subiendo imágenes...' : isDragging ? '¡Suelta las imágenes aquí!' : 'Haz clic o arrastra imágenes'}
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">PNG, JPG o WEBP • Máximo 5MB cada una</p>
+                  <p className="text-xs text-gray-400 mt-1">PNG, JPG o WEBP • Se comprimen automáticamente</p>
                 </div>
 
                 {/* Previsualizaciones */}
@@ -305,7 +384,7 @@ export default function Admin() {
                       {uploadedImages.map((img, index) => (
                         <div key={index} className="relative group aspect-square rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
                           <img
-                            src={img}
+                            src={resolveImageUrl(img)}
                             alt={`Preview ${index + 1}`}
                             className="w-full h-full object-cover"
                           />
@@ -353,7 +432,7 @@ export default function Admin() {
 
                 <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
                   <Package size={12} />
-                  En producción se suben al bucket "products" de Supabase Storage
+                  Las imágenes se guardan automáticamente (localStorage o Supabase Storage)
                 </p>
               </div>
 
@@ -389,7 +468,7 @@ export default function Admin() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
-                        <img src={product.images[0]} alt="" className="w-full h-full object-cover" />
+                        <img src={resolveImageUrl(product.images[0])} alt="" className="w-full h-full object-cover" />
                       </div>
                       <div>
                         <p className="text-sm font-medium text-[#111827] truncate max-w-[200px]">{product.name}</p>
@@ -421,7 +500,14 @@ export default function Admin() {
                       >
                         <Edit size={14} />
                       </button>
-                      <button className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                      <button
+                        onClick={() => {
+                          if (confirm(`¿Eliminar "${product.name}"?`)) {
+                            deleteProduct(product.id);
+                          }
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      >
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -441,7 +527,7 @@ export default function Admin() {
             <p className="text-sm font-medium text-blue-800">Backend: Supabase</p>
             <p className="text-xs text-blue-600 mt-1">
               En producción, este panel se conecta a Supabase Auth para autenticación y a Postgres para CRUD de productos.
-              Las imágenes se suben al bucket "products" de Supabase Storage.
+              Las imágenes se suben al bucket "products" de Supabase Storage. Actualmente usa localStorage como fallback.
             </p>
           </div>
         </div>
