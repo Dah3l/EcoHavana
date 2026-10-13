@@ -32,7 +32,7 @@ const loadProducts = async (): Promise<Product[]> => {
       
       if (!error && data && data.length > 0) {
         // Mapear datos de Supabase al formato de Product
-        return data.map((row: any) => ({
+        const supabaseProducts = data.map((row: any) => ({
           id: row.id,
           name: row.name,
           description: row.description || '',
@@ -51,6 +51,8 @@ const loadProducts = async (): Promise<Product[]> => {
     } catch (err) {
       console.warn('Error loading from Supabase, falling back to localStorage:', err);
     }
+  } else {
+    console.log('⚠️ Supabase not configured');
   }
 
   // Fallback: cargar desde localStorage
