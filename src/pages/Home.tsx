@@ -1,11 +1,14 @@
 import { useNavigate } from 'react-router-dom';
 import { Zap, Shield, Truck, ArrowRight, Battery, Sun, Settings, Package } from 'lucide-react';
-import { products, categories } from '../data/products';
+import { categories } from '../data/products';
+import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
+import { resolveImageUrl } from '../lib/storage';
 
 export default function Home() {
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  const { products } = useProducts();
   const featured = products.filter(p => p.isNew || p.offer).slice(0, 4);
 
   return (
@@ -137,7 +140,7 @@ export default function Home() {
             <div key={product.id} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all group">
               <div className="relative h-40 bg-gray-100 overflow-hidden">
                 <img
-                  src={product.images[0]}
+                  src={resolveImageUrl(product.images[0])}
                   alt={product.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />

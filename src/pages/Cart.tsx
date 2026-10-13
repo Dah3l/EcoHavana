@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Trash2, Plus, Minus, ShoppingBag, MessageCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { resolveImageUrl } from '../lib/storage';
 
 export default function Cart() {
   const navigate = useNavigate();
@@ -59,7 +60,7 @@ export default function Cart() {
         {items.map((item) => (
           <div key={item.product.id} className="bg-white rounded-2xl p-4 flex gap-4 shadow-sm">
             <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
-              <img src={item.product.images[0]} alt={item.product.name} className="w-full h-full object-cover" />
+              <img src={resolveImageUrl(item.product.images[0])} alt={item.product.name} className="w-full h-full object-cover" />
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-sm text-[#111827] truncate">{item.product.name}</h3>

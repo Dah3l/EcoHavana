@@ -1,16 +1,19 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ShoppingCart, Shield, Truck, Check } from 'lucide-react';
-import { products, categoryNames } from '../data/products';
+import { categoryNames } from '../data/products';
+import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
+import { resolveImageUrl } from '../lib/storage';
 import { useState } from 'react';
 
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  const { getProduct } = useProducts();
   const [added, setAdded] = useState(false);
 
-  const product = products.find(p => p.id === id);
+  const product = getProduct(id || '');
 
   if (!product) {
     return (
@@ -44,7 +47,7 @@ export default function ProductDetail() {
         <div className="space-y-3">
           <div className="bg-white rounded-2xl overflow-hidden aspect-square">
             <img
-              src={product.images[0]}
+              src={resolveImageUrl(product.images[0])}
               alt={product.name}
               className="w-full h-full object-cover"
             />
