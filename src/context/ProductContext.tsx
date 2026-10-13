@@ -1,285 +1,348 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { products as initialProducts, Product } from '../data/products';
-import { resolveImageUrl } from '../lib/storage';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 const PRODUCTS_STORAGE_KEY = 'energicuba_products';
 
 interface ProductContextType {
   products: Product[];
-  updateProduct: (id: string, updates: Partial<Product>) => void;
-  addProduct: (product: Product) => void;
-  deleteProduct: (id: string) => void;
+  updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
+  addProduct: (product: Product) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
   getProduct: (id: string) => Product | undefined;
   loading: boolean;
   refreshProducts: () => Promise<void>;
+  error: string | null;
 }
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
-// Cargar productos desde Supabase o localStorage
-const loadProducts = async (): Promise<Product[]> => {
-  console.log('🔄 Loading products...');
-  
-  // Primero intentar cargar desde localStorage (siempre disponible)
-  let localProducts: Product[] = [];
+// Guardar productos en localStorage
+const saveToLocalStorage = (products: Product[]) => {
+  try {
+    localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
+    console.log('💾 Productos guardados en localStorage:', products.length);
+  } catch (e) {
+    console.error('Error guardando en localStorage:', e);
+  }
+};
+
+// Cargar productos desde localStorage
+const loadFromLocalStorage = (): Product[] | null => {
   try {
     const stored = localStorage.getItem(PRODUCTS_STORAGE_KEY);
     if (stored) {
-      localProducts = JSON.parse(stored) as Product[];
-      console.log(`📦 Found ${localProducts.length} products in localStorage`);
+      const products = JSON.parse(stored);
+      console.log('📦 Productos cargados desde localStorage:', products.length);
+      return products;
     }
   } catch (e) {
-    console.error('Error loading from localStorage:', e);
+    console.error('Error cargando desde localStorage:', e);
   }
-
-  // Intentar cargar desde Supabase si está configurado
-  if (isSupabaseConfigured()) {
-    try {
-      console.log('🌐 Fetching from Supabase...');
-      const { data, error } = await supabase
-        .from('products')
-        .select(`
-          *,
-          categories (
-            slug
-          )
-        `)
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('❌ Supabase error:', error);
-        // Si hay error, usar localStorage o productos iniciales
-        if (localProducts.length > 0) {
-          console.log('✅ Using localStorage as fallback');
-          return localProducts;
-        }
-        console.log('✅ Using initial products as fallback');
-        return initialProducts;
-      }
-      
-      if (data && data.length > 0) {
-        console.log(`✅ Loaded ${data.length} products from Supabase`);
-        // Mapear datos de Supabase al formato de Product
-        const supabaseProducts = data.map((row: any) => ({
-          id: row.id,
-          name: row.name,
-          description: row.description || '',
-          price: row.price,
-          category: row.categories?.slug || 'estaciones',
-          specs: row.specs || [],
-          images: row.images || [],
-          warranty: row.warranty || '',
-          transport: row.transport || '',
-          offer: row.is_offer || false,
-          isNew: row.is_new || false,
-          featured: row.is_featured || false,
-          visible: row.is_visible !== false,
-        }));
-        
-        // Guardar en localStorage como cache
-        saveProductsToLocal(supabaseProducts);
-        
-        return supabaseProducts;
-      } else {
-        console.log('⚠️ No products in Supabase');
-      }
-    } catch (err) {
-      console.error('❌ Error loading from Supabase:', err);
-    }
-  } else {
-    console.log('⚠️ Supabase not configured');
-  }
-
-  // Fallback: usar localStorage si tiene datos
-  if (localProducts.length > 0) {
-    console.log(`✅ Using ${localProducts.length} products from localStorage`);
-    return localProducts;
-  }
-  
-  // Último recurso: productos iniciales
-  console.log('✅ Using initial products');
-  return initialProducts;
+  return null;
 };
 
-// Guardar productos en localStorage (fallback)
-const saveProductsToLocal = (products: Product[]) => {
-  try {
-    localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
-  } catch (e) {
-    console.error('Error saving products to localStorage:', e);
-  }
-};
-
-// Guardar producto en Supabase
-const saveProductToSupabase = async (product: Product, isNew: boolean = false) => {
+// Cargar productos desde Supabase
+const loadFromSupabase = async (): Promise<Product[]> => {
   if (!isSupabaseConfigured()) {
-    console.log('Supabase not configured, skipping save');
-    return;
+    console.log('⚠️ Supabase no configurado');
+    return [];
   }
 
   try {
-    console.log(`Saving product to Supabase: ${product.name} (isNew: ${isNew})`);
+    console.log('🌐 Cargando productos desde Supabase...');
+    
+    const { data, error } = await supabase
+      .from('products')
+      .select(`
+        *,
+        categories!inner(slug)
+      `)
+      .order('created_at', { ascending: false });
 
-    // Obtener el category_id
-    const { data: categoryData, error: categoryError } = await supabase
+    if (error) {
+      console.error('❌ Error cargando desde Supabase:', error);
+      throw error;
+    }
+
+    if (!data || data.length === 0) {
+      console.log('⚠️ No hay productos en Supabase');
+      return [];
+    }
+
+    console.log('✅ Productos cargados desde Supabase:', data.length);
+
+    // Mapear al formato de Product
+    return data.map((row: any) => ({
+      id: row.id,
+      name: row.name,
+      description: row.description || '',
+      price: row.price,
+      category: row.categories?.slug || 'estaciones',
+      specs: row.specs || [],
+      images: row.images || [],
+      warranty: row.warranty || '',
+      transport: row.transport || '',
+      offer: row.is_offer || false,
+      isNew: row.is_new || false,
+      featured: row.is_featured || false,
+      visible: row.is_visible !== false,
+    }));
+  } catch (err) {
+    console.error('❌ Error en loadFromSupabase:', err);
+    return [];
+  }
+};
+
+// Obtener category_id por slug
+const getCategoryId = async (slug: string): Promise<string | null> => {
+  try {
+    const { data, error } = await supabase
       .from('categories')
       .select('id')
-      .eq('slug', product.category)
+      .eq('slug', slug)
       .single();
 
-    if (categoryError) {
-      console.error('Error fetching category:', categoryError);
-      throw new Error(`Category not found: ${product.category}`);
+    if (error) {
+      console.error('Error obteniendo category_id:', error);
+      return null;
     }
 
-    const productData = {
-      name: product.name,
-      description: product.description,
-      price: product.price,
-      category_id: categoryData?.id,
-      specs: product.specs,
-      images: product.images,
-      warranty: product.warranty,
-      transport: product.transport,
-      is_offer: product.offer || false,
-      is_new: product.isNew || false,
-      is_featured: product.featured || false,
-      is_visible: product.visible !== false,
-    };
-
-    if (isNew) {
-      // Para nuevos productos, NO incluir el id (Supabase lo genera)
-      const { data, error } = await supabase.from('products').insert(productData).select();
-      if (error) {
-        console.error('Error inserting product:', error);
-        throw error;
-      }
-      console.log('Product inserted successfully:', data);
-      return data?.[0]?.id; // Retornar el nuevo ID generado por Supabase
-    } else {
-      const { error } = await supabase.from('products').update(productData).eq('id', product.id);
-      if (error) {
-        console.error('Error updating product:', error);
-        throw error;
-      }
-      console.log('Product updated successfully');
-    }
+    return data?.id || null;
   } catch (err) {
-    console.error('Error saving to Supabase:', err);
-    throw err; // Re-lanzar para que el componente pueda manejarlo
+    console.error('Error en getCategoryId:', err);
+    return null;
   }
 };
 
 export function ProductProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Cargar productos al montar
   useEffect(() => {
-    loadProducts().then((loaded) => {
-      setProducts(loaded);
-      setLoading(false);
-    });
+    loadProducts();
   }, []);
 
-  // Persistir cambios en localStorage (fallback)
-  useEffect(() => {
-    if (products.length > 0) {
-      saveProductsToLocal(products);
-    }
-  }, [products]);
+  const loadProducts = async () => {
+    setLoading(true);
+    setError(null);
 
-  const updateProduct = async (id: string, updates: Partial<Product>) => {
-    console.log('🔄 Updating product:', id);
-    
-    // Actualizar estado local inmediatamente
-    setProducts(prev => {
-      const updated = prev.map(p => (p.id === id ? { ...p, ...updates } : p));
-      // Guardar en localStorage inmediatamente
-      saveProductsToLocal(updated);
-      return updated;
-    });
-    
-    // Guardar en Supabase
-    if (isSupabaseConfigured()) {
-      try {
-        const currentProduct = products.find(p => p.id === id);
-        if (currentProduct) {
-          const fullProduct = { ...currentProduct, ...updates };
-          await saveProductToSupabase(fullProduct, false);
-          console.log('✅ Product updated in Supabase');
+    try {
+      // Intentar cargar desde Supabase primero
+      if (isSupabaseConfigured()) {
+        const supabaseProducts = await loadFromSupabase();
+        
+        if (supabaseProducts.length > 0) {
+          setProducts(supabaseProducts);
+          saveToLocalStorage(supabaseProducts); // Cache en localStorage
+          setLoading(false);
+          return;
         }
-      } catch (err) {
-        console.error('❌ Failed to update in Supabase:', err);
-        console.log('⚠️ Product updated locally but not in Supabase');
       }
+
+      // Fallback a localStorage
+      const localProducts = loadFromLocalStorage();
+      if (localProducts && localProducts.length > 0) {
+        setProducts(localProducts);
+        setLoading(false);
+        return;
+      }
+
+      // Fallback a productos iniciales
+      console.log('📋 Usando productos iniciales');
+      setProducts(initialProducts);
+      saveToLocalStorage(initialProducts);
+    } catch (err: any) {
+      console.error('❌ Error cargando productos:', err);
+      setError(err.message || 'Error cargando productos');
+      
+      // Último fallback
+      const localProducts = loadFromLocalStorage();
+      if (localProducts) {
+        setProducts(localProducts);
+      } else {
+        setProducts(initialProducts);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
+  const refreshProducts = async () => {
+    await loadProducts();
+  };
+
   const addProduct = async (product: Product) => {
-    console.log('➕ Adding product:', product.name);
-    
+    console.log('➕ Agregando producto:', product.name);
+
     // Agregar al estado inmediatamente
     setProducts(prev => {
       const updated = [...prev, product];
-      // Guardar en localStorage inmediatamente
-      saveProductsToLocal(updated);
+      saveToLocalStorage(updated);
       return updated;
     });
-    
-    // Intentar guardar en Supabase
-    if (isSupabaseConfigured()) {
-      try {
-        console.log('🌐 Saving to Supabase...');
-        const newId = await saveProductToSupabase(product, true);
-        
-        if (newId && newId !== product.id) {
-          console.log(`✅ Product saved with new ID: ${newId}`);
-          // Actualizar el ID en el estado
-          setProducts(prev => {
-            const updated = prev.map(p => p.id === product.id ? { ...p, id: newId } : p);
-            // Actualizar localStorage con el nuevo ID
-            saveProductsToLocal(updated);
-            return updated;
-          });
-        } else {
-          console.log('✅ Product saved to Supabase');
-        }
-      } catch (err) {
-        console.error('❌ Failed to save to Supabase:', err);
-        console.log('⚠️ Product saved locally but not in Supabase');
-        // El producto ya está en localStorage, no se perderá
+
+    if (!isSupabaseConfigured()) {
+      console.log('⚠️ Supabase no configurado, producto guardado solo en localStorage');
+      return;
+    }
+
+    try {
+      // Obtener category_id
+      const categoryId = await getCategoryId(product.category);
+      
+      if (!categoryId) {
+        throw new Error(`Categoría no encontrada: ${product.category}`);
       }
-    } else {
-      console.log('⚠️ Supabase not configured, product saved locally only');
+
+      // Preparar datos para Supabase
+      const productData = {
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        category_id: categoryId,
+        specs: product.specs,
+        images: product.images,
+        warranty: product.warranty,
+        transport: product.transport,
+        is_offer: product.offer || false,
+        is_new: product.isNew || false,
+        is_featured: product.featured || false,
+        is_visible: product.visible !== false,
+      };
+
+      console.log('📤 Enviando a Supabase:', productData);
+
+      // Insertar en Supabase
+      const { data, error } = await supabase
+        .from('products')
+        .insert(productData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error insertando en Supabase:', error);
+        throw error;
+      }
+
+      console.log('✅ Producto creado en Supabase con ID:', data.id);
+
+      // Actualizar el producto con el ID real de Supabase
+      setProducts(prev => {
+        const updated = prev.map(p => 
+          p.id === product.id ? { ...p, id: data.id } : p
+        );
+        saveToLocalStorage(updated);
+        return updated;
+      });
+
+    } catch (err: any) {
+      console.error('❌ Error en addProduct:', err);
+      setError(err.message || 'Error agregando producto');
+    }
+  };
+
+  const updateProduct = async (id: string, updates: Partial<Product>) => {
+    console.log('🔄 Actualizando producto:', id);
+
+    // Actualizar el estado inmediatamente
+    setProducts(prev => {
+      const updated = prev.map(p => 
+        p.id === id ? { ...p, ...updates } : p
+      );
+      saveToLocalStorage(updated);
+      return updated;
+    });
+
+    if (!isSupabaseConfigured()) {
+      console.log('⚠️ Supabase no configurado, producto actualizado solo en localStorage');
+      return;
+    }
+
+    try {
+      // Obtener el producto actual
+      const currentProduct = products.find(p => p.id === id);
+      if (!currentProduct) {
+        throw new Error('Producto no encontrado');
+      }
+
+      // Si cambió la categoría, obtener el nuevo category_id
+      let categoryId = null;
+      if (updates.category && updates.category !== currentProduct.category) {
+        categoryId = await getCategoryId(updates.category);
+      }
+
+      // Preparar datos para Supabase
+      const productData: any = {};
+      
+      if (updates.name !== undefined) productData.name = updates.name;
+      if (updates.description !== undefined) productData.description = updates.description;
+      if (updates.price !== undefined) productData.price = updates.price;
+      if (updates.specs !== undefined) productData.specs = updates.specs;
+      if (updates.images !== undefined) productData.images = updates.images;
+      if (updates.warranty !== undefined) productData.warranty = updates.warranty;
+      if (updates.transport !== undefined) productData.transport = updates.transport;
+      if (updates.offer !== undefined) productData.is_offer = updates.offer;
+      if (updates.isNew !== undefined) productData.is_new = updates.isNew;
+      if (updates.featured !== undefined) productData.is_featured = updates.featured;
+      if (updates.visible !== undefined) productData.is_visible = updates.visible;
+      if (categoryId) productData.category_id = categoryId;
+
+      console.log('📤 Actualizando en Supabase:', productData);
+
+      // Actualizar en Supabase
+      const { error } = await supabase
+        .from('products')
+        .update(productData)
+        .eq('id', id);
+
+      if (error) {
+        console.error('❌ Error actualizando en Supabase:', error);
+        throw error;
+      }
+
+      console.log('✅ Producto actualizado en Supabase');
+
+    } catch (err: any) {
+      console.error('❌ Error en updateProduct:', err);
+      setError(err.message || 'Error actualizando producto');
     }
   };
 
   const deleteProduct = async (id: string) => {
-    console.log('🗑️ Deleting product:', id);
-    
-    // Eliminar del estado local inmediatamente
+    console.log('🗑️ Eliminando producto:', id);
+
+    // Eliminar del estado inmediatamente
     setProducts(prev => {
       const updated = prev.filter(p => p.id !== id);
-      // Guardar en localStorage inmediatamente
-      saveProductsToLocal(updated);
+      saveToLocalStorage(updated);
       return updated;
     });
-    
-    // Eliminar de Supabase
-    if (isSupabaseConfigured()) {
-      try {
-        const { error } = await supabase.from('products').delete().eq('id', id);
-        if (error) {
-          console.error('❌ Error deleting from Supabase:', error);
-          throw error;
-        }
-        console.log('✅ Product deleted from Supabase');
-      } catch (err) {
-        console.error('❌ Failed to delete from Supabase:', err);
-        console.log('⚠️ Product deleted locally but not from Supabase');
+
+    if (!isSupabaseConfigured()) {
+      console.log('⚠️ Supabase no configurado, producto eliminado solo de localStorage');
+      return;
+    }
+
+    try {
+      // Eliminar de Supabase
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('❌ Error eliminando de Supabase:', error);
+        throw error;
       }
+
+      console.log('✅ Producto eliminado de Supabase');
+
+    } catch (err: any) {
+      console.error('❌ Error en deleteProduct:', err);
+      setError(err.message || 'Error eliminando producto');
     }
   };
 
@@ -287,22 +350,17 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     return products.find(p => p.id === id);
   };
 
-  const refreshProducts = async () => {
-    console.log('Refreshing products...');
-    setLoading(true);
-    try {
-      const loaded = await loadProducts();
-      setProducts(loaded);
-      console.log(`Refreshed: ${loaded.length} products`);
-    } catch (err) {
-      console.error('Error refreshing products:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
-    <ProductContext.Provider value={{ products, updateProduct, addProduct, deleteProduct, getProduct, loading, refreshProducts }}>
+    <ProductContext.Provider value={{
+      products,
+      updateProduct,
+      addProduct,
+      deleteProduct,
+      getProduct,
+      loading,
+      refreshProducts,
+      error,
+    }}>
       {children}
     </ProductContext.Provider>
   );
@@ -310,11 +368,8 @@ export function ProductProvider({ children }: { children: ReactNode }) {
 
 export function useProducts() {
   const context = useContext(ProductContext);
-  if (!context) throw new Error('useProducts must be used within ProductProvider');
+  if (!context) {
+    throw new Error('useProducts debe usarse dentro de ProductProvider');
+  }
   return context;
-}
-
-// Hook para resolver URLs de imágenes
-export function useResolvedImages(images: string[]): string[] {
-  return images.map(resolveImageUrl);
 }
