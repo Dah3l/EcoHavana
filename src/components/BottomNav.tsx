@@ -21,11 +21,23 @@ export default function BottomNav() {
     width: 0,
     ready: false,
   });
+  const [animationComplete, setAnimationComplete] = useState(false);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const navRef = useRef<HTMLDivElement>(null);
 
+  // Esperar a que la animación del navbar termine antes de calcular el indicador
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAnimationComplete(true);
+    }, 600); // Duración de la animación nav-fade-in (0.6s)
+    
+    return () => clearTimeout(timer);
+  }, []);
+
   // Calcular posición del indicador deslizante
   const updateIndicator = useCallback(() => {
+    if (!animationComplete) return; // No calcular hasta que termine la animación
+    
     const activeIndex = navItems.findIndex(
       (item) =>
         location.pathname === item.path ||
@@ -41,12 +53,14 @@ export default function BottomNav() {
         ready: true,
       });
     }
-  }, [location.pathname]);
+  }, [location.pathname, animationComplete]);
 
-  // useLayoutEffect para calcular ANTES del paint (evita flash/desborde inicial)
-  useLayoutEffect(() => {
-    updateIndicator();
-  }, [updateIndicator]);
+  // Calcular el indicador DESPUÉS de que la animación termine
+  useEffect(() => {
+    if (animationComplete) {
+      updateIndicator();
+    }
+  }, [animationComplete, updateIndicator]);
 
   // Recalcular en resize
   useEffect(() => {
